@@ -1,0 +1,26 @@
+1:"$Sreact.fragment"
+2:I[8437,["437","static/chunks/437-c4226bdbd4ef8ae5.js","220","static/chunks/app/about/page-d177ba22fd5f3bbd.js"],"Image"]
+3:I[484,[],"OutletBoundary"]
+4:"$Sreact.suspense"
+8:I[484,[],"ViewportBoundary"]
+9:I[484,[],"MetadataBoundary"]
+b:I[7121,[],""]
+c:I[4581,[],""]
+f:I[900,["437","static/chunks/437-c4226bdbd4ef8ae5.js","743","static/chunks/743-7cc7ef6e1ddb6fd4.js","784","static/chunks/784-07cc2856fcd87485.js","177","static/chunks/app/layout-f969dc1c0fe451b3.js"],"StoreProvider"]
+10:I[6810,["437","static/chunks/437-c4226bdbd4ef8ae5.js","743","static/chunks/743-7cc7ef6e1ddb6fd4.js","784","static/chunks/784-07cc2856fcd87485.js","177","static/chunks/app/layout-f969dc1c0fe451b3.js"],"MotionEffects"]
+11:I[900,["437","static/chunks/437-c4226bdbd4ef8ae5.js","743","static/chunks/743-7cc7ef6e1ddb6fd4.js","784","static/chunks/784-07cc2856fcd87485.js","177","static/chunks/app/layout-f969dc1c0fe451b3.js"],"Header"]
+12:I[900,["437","static/chunks/437-c4226bdbd4ef8ae5.js","743","static/chunks/743-7cc7ef6e1ddb6fd4.js","784","static/chunks/784-07cc2856fcd87485.js","177","static/chunks/app/layout-f969dc1c0fe451b3.js"],"Footer"]
+:HL["/_next/static/css/79a748df176d86ec.css","style"]
+7:X
+e:X
+e:C
+0:{"buildId":"wNn1hOQd93NA5-JDoQ_Zg","data":[{"rsc":["$","$1","c",{"children":[["$","main",null,{"children":[["$","section",null,{"className":"container-x py-20 text-center","children":[["$","p",null,{"className":"eyebrow text-brown","children":"The Guardian"}],["$","h1",null,{"className":"display text-7xl tracking-[.15em] mt-5","children":"SPHINX"}],["$","p",null,{"className":"display text-2xl mt-7","children":"Прошлое не исчезает. Оно становится частью тебя."}]]}],["$","section",null,{"className":"container-x grid md:grid-cols-2 gap-14 items-center pb-24","children":[["$","div",null,{"className":"relative aspect-[4/5] bg-sand","children":["$","$L2",null,{"src":"/assets/products/lotus-sand.svg","alt":"SPHINX heritage","fill":true,"className":"object-cover"}]}],["$","div",null,{"children":[["$","p",null,{"className":"eyebrow text-brown","children":"Our identity"}],["$","h2",null,{"className":"display text-4xl mt-4","children":"Наследие в движении"}],["$","p",null,{"className":"text-muted leading-8 mt-7","children":"SPHINX — бренд современной одежды, вдохновлённый культурой и наследием Египта. Мы переносим силу древних символов — лотоса, анкха и пирамид — в чистый язык современного streetwear."}],["$","p",null,{"className":"text-muted leading-8 mt-5","children":"Без театральности. Без сувенирной эстетики. Только точная форма, качественные материалы и графика со смыслом."}]]}]]}]]}],null,["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":"$@6","staleTime":"$7","varyParams":null},{"rsc":["$","$1","h",{"children":[null,["$","$L8",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L9",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"SPHINX — THE GUARDIAN"}],["$","meta","1",{"name":"description","content":"Современный Египет в streetwear"}]]}]}]}],null]}],"isPartial":"$@a","staleTime":"$7","varyParams":null},{"rsc":["$","$1","c",{"children":[null,["$","$Lb",null,{"parallelRouterKey":"children","template":["$","$Lc",null,{}]}]]}],"isPartial":"$@d","staleTime":"$7","varyParams":"$e"},{"rsc":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/79a748df176d86ec.css","precedence":"next"}]],["$","html",null,{"lang":"ru","children":["$","body",null,{"children":["$","$Lf",null,{"children":[["$","$L10",null,{}],["$","$L11",null,{}],["$","$Lb",null,{"parallelRouterKey":"children","template":["$","$Lc",null,{}],"notFound":[[["$","title",null,{"children":"404: This page could not be found."}],["$","div",null,{"style":{"fontFamily":"system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\"","height":"100vh","textAlign":"center","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center"},"children":["$","div",null,{"children":[["$","style",null,{"dangerouslySetInnerHTML":{"__html":"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}"}}],["$","h1",null,{"className":"next-error-h1","style":{"display":"inline-block","margin":"0 20px 0 0","padding":"0 23px 0 0","fontSize":24,"fontWeight":500,"verticalAlign":"top","lineHeight":"49px"},"children":404}],["$","div",null,{"style":{"display":"inline-block"},"children":["$","h2",null,{"style":{"fontSize":14,"fontWeight":400,"lineHeight":"49px","margin":0},"children":"This page could not be found."}]}]]}]}]],[]]}],["$","$L12",null,{}]]}]}]}]]}],"isPartial":"$@13","staleTime":"$7","varyParams":null}],"isUpgradeableISRFallback":false,"a":"$@14","rootVaryParams":null,"needsRuntimeRequest":"$@15"}
+5:null
+7:300
+15:true
+7:C
+14:0
+a:"$undefined"
+d:"$undefined"
+13:"$undefined"
+6:"$undefined"

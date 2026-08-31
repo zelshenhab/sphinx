@@ -1,0 +1,23 @@
+1:"$Sreact.fragment"
+2:I[900,["437","static/chunks/437-c4226bdbd4ef8ae5.js","743","static/chunks/743-7cc7ef6e1ddb6fd4.js","784","static/chunks/784-07cc2856fcd87485.js","177","static/chunks/app/layout-f969dc1c0fe451b3.js"],"StoreProvider"]
+3:I[6810,["437","static/chunks/437-c4226bdbd4ef8ae5.js","743","static/chunks/743-7cc7ef6e1ddb6fd4.js","784","static/chunks/784-07cc2856fcd87485.js","177","static/chunks/app/layout-f969dc1c0fe451b3.js"],"MotionEffects"]
+4:I[900,["437","static/chunks/437-c4226bdbd4ef8ae5.js","743","static/chunks/743-7cc7ef6e1ddb6fd4.js","784","static/chunks/784-07cc2856fcd87485.js","177","static/chunks/app/layout-f969dc1c0fe451b3.js"],"Header"]
+5:I[7121,[],""]
+6:I[4581,[],""]
+7:I[900,["437","static/chunks/437-c4226bdbd4ef8ae5.js","743","static/chunks/743-7cc7ef6e1ddb6fd4.js","784","static/chunks/784-07cc2856fcd87485.js","177","static/chunks/app/layout-f969dc1c0fe451b3.js"],"Footer"]
+8:I[1304,[],"ClientPageRoot"]
+9:I[8120,["437","static/chunks/437-c4226bdbd4ef8ae5.js","743","static/chunks/743-7cc7ef6e1ddb6fd4.js","474","static/chunks/474-9f6e0a66d0abf6e4.js","279","static/chunks/app/checkout/page-1903307eb642bd7f.js"],"default"]
+c:I[484,[],"OutletBoundary"]
+d:"$Sreact.suspense"
+10:I[484,[],"ViewportBoundary"]
+12:I[484,[],"MetadataBoundary"]
+14:I[7123,[],"default",1]
+:HL["/_next/static/css/79a748df176d86ec.css","style"]
+f:X
+0:{"P":null,"c":["","checkout"],"q":"","i":false,"f":[[["",{"children":["checkout",{"children":["__PAGE__",{},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4624],[["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/79a748df176d86ec.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","html",null,{"lang":"ru","children":["$","body",null,{"children":["$","$L2",null,{"children":[["$","$L3",null,{}],["$","$L4",null,{}],["$","$L5",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L6",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[[["$","title",null,{"children":"404: This page could not be found."}],["$","div",null,{"style":{"fontFamily":"system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\"","height":"100vh","textAlign":"center","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center"},"children":["$","div",null,{"children":[["$","style",null,{"dangerouslySetInnerHTML":{"__html":"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}"}}],["$","h1",null,{"className":"next-error-h1","style":{"display":"inline-block","margin":"0 20px 0 0","padding":"0 23px 0 0","fontSize":24,"fontWeight":500,"verticalAlign":"top","lineHeight":"49px"},"children":404}],["$","div",null,{"style":{"display":"inline-block"},"children":["$","h2",null,{"style":{"fontSize":14,"fontWeight":400,"lineHeight":"49px","margin":0},"children":"This page could not be found."}]}]]}]}]],[]],"forbidden":"$undefined","unauthorized":"$undefined"}],["$","$L7",null,{}]]}]}]}]]}],{"children":[["$","$1","c",{"children":[null,["$","$L5",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L6",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":[["$","$1","c",{"children":[["$","$L8",null,{"Component":"$9","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@a","$@b"]}}],null,["$","$Lc",null,{"children":["$","$d",null,{"name":"Next.MetadataOutlet","children":"$@e"}]}]]}],{},null,false,null]},null,false,"$f"]},null,false,null],["$","$1","h",{"children":[null,["$","$L10",null,{"children":"$L11"}],["$","div",null,{"hidden":true,"children":["$","$L12",null,{"children":["$","$d",null,{"name":"Next.Metadata","children":"$L13"}]}]}],null]}],false]],"m":"$undefined","G":["$14",[]],"S":true,"h":null,"r":"$undefined","s":"$undefined","a":"$undefined","l":"$undefined","p":"$undefined","d":"$undefined","b":"wNn1hOQd93NA5-JDoQ_Zg"}
+f:C
+a:{}
+b:"$0:f:0:1:1:children:1:children:0:props:children:0:props:serverProvidedParams:params"
+11:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
+e:null
+13:[["$","title","0",{"children":"SPHINX — THE GUARDIAN"}],["$","meta","1",{"name":"description","content":"Современный Египет в streetwear"}]]

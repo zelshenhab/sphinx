@@ -1,0 +1,2 @@
+import {notFound} from 'next/navigation';import {categories,products} from '@/data/products';import {ProductGrid} from '@/components/product-card';
+export default async function Category({params}:{params:Promise<{category:string}>}){const{category}=await params;const c=categories.find(x=>x.slug===category);if(!c)notFound();return <main className="container-x py-16"><p className="eyebrow text-brown">Collection</p><h1 className="display text-5xl mt-3 mb-12">{c.name}</h1><ProductGrid products={products.filter(p=>p.category===category)}/></main>}
