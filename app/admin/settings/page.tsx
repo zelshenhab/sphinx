@@ -1,1 +1,51 @@
-'use client';import {useEffect,useState} from 'react';import {TELEGRAM_USERNAME} from '@/lib/config';const defaults={brand:'SPHINX',tagline:'THE GUARDIAN',telegram:TELEGRAM_USERNAME,instagram:'https://instagram.com/sphinx.wear',vk:'https://vk.com/sphinx',announcement:'Бесплатная доставка от 7 000 ₽',currency:'RUB ₽'};export default function Settings(){const[s,setS]=useState(defaults);const[saved,setSaved]=useState(false);useEffect(()=>{const x=localStorage.getItem('sphinx-settings');if(x)setS(JSON.parse(x))},[]);return <div className="admin-card max-w-2xl"><h2 className="display text-2xl mb-6">Настройки</h2><div className="grid sm:grid-cols-2 gap-4">{Object.entries(s).map(([k,v])=><label className={k==='announcement'?'sm:col-span-2':''} key={k}><span className="text-xs text-muted uppercase">{k}</span><input className="field mt-2" value={v} onChange={e=>setS({...s,[k]:e.target.value})}/></label>)}</div><button className="btn btn-dark mt-6" onClick={()=>{localStorage.setItem('sphinx-settings',JSON.stringify(s));setSaved(true)}}>Сохранить</button>{saved&&<span className="text-sm text-green-700 ml-4">Сохранено локально</span>}</div>}
+'use client';
+import { useEffect, useState } from 'react';
+import { TELEGRAM_USERNAME } from '@/config/site';
+import { clientStorage, storageKeys } from '@/core/storage/client-storage';
+import { useNotification } from '@/features/notifications';
+const defaults = {
+  brand: 'SPHINX',
+  tagline: 'THE GUARDIAN',
+  telegram: TELEGRAM_USERNAME,
+  instagram: 'https://instagram.com/sphinx.wear',
+  vk: 'https://vk.com/sphinx',
+  announcement: 'Бесплатная доставка от 7 000 ₽',
+  currency: 'RUB ₽',
+};
+export default function Settings() {
+  const { notify } = useNotification();
+  const [s, setS] = useState(defaults);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setS(clientStorage.get(storageKeys.settings, defaults)), 0);
+    return () => window.clearTimeout(id);
+  }, []);
+  return (
+    <div className="admin-card max-w-2xl">
+      <h2 className="display text-2xl mb-6">Настройки</h2>
+      <div className="grid sm:grid-cols-2 gap-4">
+        {Object.entries(s).map(([k, v]) => (
+          <label className={k === 'announcement' ? 'sm:col-span-2' : ''} key={k}>
+            <span className="text-xs text-muted uppercase">{k}</span>
+            <input
+              className="field mt-2"
+              value={v}
+              onChange={(e) => setS({ ...s, [k]: e.target.value })}
+            />
+          </label>
+        ))}
+      </div>
+      <button
+        className="btn btn-dark mt-6"
+        onClick={() => {
+          clientStorage.set(storageKeys.settings, s);
+          setSaved(true);
+          notify('settings_saved', 'success');
+        }}
+      >
+        Сохранить
+      </button>
+      {saved && <span className="text-sm text-green-700 ml-4">Сохранено локально</span>}
+    </div>
+  );
+}

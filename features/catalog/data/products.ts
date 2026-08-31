@@ -1,4 +1,4 @@
-import { Product, Category } from '@/types';
+import type { Product, Category } from '@/types';
 const art=(label:string,tone='dark')=>`/assets/products/${label}-${tone}.svg`;
 export const categories:Category[]=[
  {id:'1',name:'Футболки',slug:'t-shirts',image:art('egyptian-power'),active:true},
