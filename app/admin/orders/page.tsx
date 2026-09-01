@@ -1,13 +1,23 @@
+'use client';
+import { useEffect, useState } from 'react';
 import { formatPrice } from '@/config/site';
-const orders = [
-  ['SPX-001', 'Иван Петров', 2, 8980, '31.08.2026', 'Новый'],
-  ['SPX-002', 'Анна Смирнова', 1, 3490, '30.08.2026', 'Связались'],
-  ['SPX-003', 'Максим Орлов', 3, 12470, '29.08.2026', 'Отправлен'],
-];
+import { listOrders } from '@/core/supabase/store';
+import type { Order } from '@/types';
 export default function Orders() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    void listOrders()
+      .then(setOrders)
+      .catch((loadError) => {
+        console.error('[SPHINX_ORDERS_LOAD_ERROR]', loadError);
+        setError('Не удалось загрузить заказы из Supabase.');
+      });
+  }, []);
   return (
     <div className="admin-card overflow-auto">
       <h2 className="display text-2xl mb-6">Заказы</h2>
+      {error && <p className="text-sm text-red-700 mb-5">{error}</p>}
       <table className="w-full text-sm text-left min-w-[650px]">
         <thead>
           <tr>
@@ -20,12 +30,13 @@ export default function Orders() {
         </thead>
         <tbody>
           {orders.map((o) => (
-            <tr className="border-t" key={o[0] as string}>
-              {o.map((v, i) => (
-                <td className="py-4" key={i}>
-                  {i === 3 ? formatPrice(v as number) : v}
-                </td>
-              ))}
+            <tr className="border-t" key={o.id}>
+              <td className="py-4">{o.id}</td>
+              <td className="py-4">{o.customer}</td>
+              <td className="py-4">{o.items}</td>
+              <td className="py-4">{formatPrice(o.total)}</td>
+              <td className="py-4">{o.date}</td>
+              <td className="py-4">{o.status}</td>
             </tr>
           ))}
         </tbody>
