@@ -1,7 +1,14 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { products as seed } from '@/features/catalog';
+import {
+  createProduct,
+  deleteProduct,
+  listProducts,
+  products as seed,
+  uploadProductImage,
+  useCatalog,
+} from '@/features/catalog';
 import { Product } from '@/types';
 import { formatPrice } from '@/config/site';
 import { clientStorage, storageKeys } from '@/core/storage/client-storage';
@@ -29,15 +36,28 @@ function load() {
 }
 export default function Products() {
   const { notify } = useNotification();
+  const { refresh } = useCatalog();
   const [list, setList] = useState<Product[]>(load);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blank);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(async () => {
+      try {
+        const remote = await listProducts();
+        if (remote.length) setList(remote);
+      } catch (loadError) {
+        console.info('[SPHINX_ADMIN_LOCAL_FALLBACK]', loadError);
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
   const save = (x: Product[]) => {
     setList(x);
     clientStorage.set(storageKeys.products, x);
   };
-  const create = (e: React.FormEvent) => {
+  const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.slug.trim() || !Number(form.price)) {
       setError('اكتب اسم المنتج وSlug والسعر.');
@@ -69,11 +89,38 @@ export default function Products() {
       isNew: form.isNew,
       isSale: form.isSale,
     };
-    save([p, ...list]);
+    try {
+      const remoteProduct = await createProduct(p);
+      save([remoteProduct, ...list]);
+      await refresh();
+    } catch (createError) {
+      console.error('[SPHINX_PRODUCT_CREATE_ERROR]', createError);
+      save([p, ...list]);
+      notify(
+        {
+          ru: 'Supabase недоступен — товар сохранён локально',
+          en: 'Supabase unavailable — product saved locally',
+        },
+        'warning',
+      );
+    }
     setForm(blank);
     setError('');
     setOpen(false);
     notify('product_created', 'success');
+  };
+  const uploadImage = async (file: File) => {
+    setUploading(true);
+    try {
+      const image = await uploadProductImage(file);
+      setForm((current) => ({ ...current, image }));
+      notify({ ru: 'Изображение загружено', en: 'Image uploaded' }, 'success');
+    } catch (uploadError) {
+      console.error('[SPHINX_IMAGE_UPLOAD_ERROR]', uploadError);
+      notify({ ru: 'Не удалось загрузить изображение', en: 'Could not upload image' }, 'error');
+    } finally {
+      setUploading(false);
+    }
   };
   return (
     <div className="admin-card overflow-auto">
@@ -158,6 +205,19 @@ export default function Products() {
               value={form.image}
               change={(v) => setForm({ ...form, image: v })}
             />
+            <label>
+              <T>{uploading ? 'Uploading...' : 'Upload image'}</T>
+              <input
+                className="field mt-2"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/avif"
+                disabled={uploading}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void uploadImage(file);
+                }}
+              />
+            </label>
             <Field
               label="Material"
               value={form.material}
@@ -224,8 +284,20 @@ export default function Products() {
               <td>In stock</td>
               <td className="space-x-3">
                 <button
-                  onClick={() => {
-                    save([...list, { ...p, id: Date.now().toString(), name: p.name + ' Copy' }]);
+                  onClick={async () => {
+                    const copy = {
+                      ...p,
+                      id: Date.now().toString(),
+                      name: p.name + ' Copy',
+                      slug: `${p.slug}-copy-${Date.now()}`,
+                    };
+                    try {
+                      const remoteCopy = await createProduct(copy);
+                      save([...list, remoteCopy]);
+                      await refresh();
+                    } catch {
+                      save([...list, copy]);
+                    }
                     notify('product_duplicated', 'success');
                   }}
                 >
@@ -233,7 +305,13 @@ export default function Products() {
                 </button>
                 <button
                   className="text-red-700"
-                  onClick={() => {
+                  onClick={async () => {
+                    try {
+                      await deleteProduct(p.id);
+                      await refresh();
+                    } catch (deleteError) {
+                      console.info('[SPHINX_PRODUCT_DELETE_LOCAL_ONLY]', deleteError);
+                    }
                     save(list.filter((_, n) => n !== i));
                     notify('product_deleted', 'info');
                   }}

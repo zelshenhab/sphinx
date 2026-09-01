@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { TELEGRAM_USERNAME } from '@/config/site';
 import { clientStorage, storageKeys } from '@/core/storage/client-storage';
 import { useNotification } from '@/features/notifications';
+import { loadSettings, saveSettings } from '@/core/supabase/store';
 const defaults = {
   brand: 'SPHINX',
   tagline: 'THE GUARDIAN',
@@ -17,7 +18,15 @@ export default function Settings() {
   const [s, setS] = useState(defaults);
   const [saved, setSaved] = useState(false);
   useEffect(() => {
-    const id = window.setTimeout(() => setS(clientStorage.get(storageKeys.settings, defaults)), 0);
+    const id = window.setTimeout(async () => {
+      const local = clientStorage.get(storageKeys.settings, defaults);
+      try {
+        setS(await loadSettings(local));
+      } catch (error) {
+        console.info('[SPHINX_SETTINGS_LOCAL_FALLBACK]', error);
+        setS(local);
+      }
+    }, 0);
     return () => window.clearTimeout(id);
   }, []);
   return (
@@ -37,15 +46,27 @@ export default function Settings() {
       </div>
       <button
         className="btn btn-dark mt-6"
-        onClick={() => {
+        onClick={async () => {
           clientStorage.set(storageKeys.settings, s);
-          setSaved(true);
-          notify('settings_saved', 'success');
+          try {
+            await saveSettings(s);
+            setSaved(true);
+            notify('settings_saved', 'success');
+          } catch (error) {
+            console.error('[SPHINX_SETTINGS_SAVE_ERROR]', error);
+            notify(
+              {
+                ru: 'Не удалось сохранить настройки в Supabase',
+                en: 'Could not save settings to Supabase',
+              },
+              'error',
+            );
+          }
         }}
       >
         Сохранить
       </button>
-      {saved && <span className="text-sm text-green-700 ml-4">Сохранено локально</span>}
+      {saved && <span className="text-sm text-green-700 ml-4">Сохранено в Supabase</span>}
     </div>
   );
 }

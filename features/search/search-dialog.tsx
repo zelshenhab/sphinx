@@ -4,11 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Search, X } from 'lucide-react';
-import { products as catalogProducts } from '@/features/catalog/data/products';
-import { clientStorage, storageKeys } from '@/core/storage/client-storage';
+import { useCatalog } from '@/features/catalog';
 import { formatPrice } from '@/config/site';
 import { useLanguage } from '@/features/i18n';
-import type { Product } from '@/types';
 
 interface SearchDialogProps {
   open: boolean;
@@ -17,16 +15,13 @@ interface SearchDialogProps {
 
 export function SearchDialog({ open, onClose }: SearchDialogProps) {
   const { language } = useLanguage();
+  const { products } = useCatalog();
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const close = useCallback(() => {
     setQuery('');
     onClose();
   }, [onClose]);
-  const products = useMemo(() => {
-    void open;
-    return clientStorage.get<Product[]>(storageKeys.products, catalogProducts);
-  }, [open]);
 
   const copy =
     language === 'ru'

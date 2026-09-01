@@ -1,3 +1,109 @@
-'use client';import {use, useState} from 'react';import Image from 'next/image';import {notFound} from 'next/navigation';import {Minus,Plus} from 'lucide-react';import {products} from '@/features/catalog';import {formatPrice,TELEGRAM_USERNAME} from '@/config/site';import {useCart} from '@/features/cart';
-export default function ProductPage({params}:{params:Promise<{slug:string}>}){const{slug}=use(params);const p=products.find(x=>x.slug===slug);if(!p)notFound();const[color,setColor]=useState(p.colors[0]);const[size,setSize]=useState('M');const[q,setQ]=useState(1);const[image,setImage]=useState(p.images[0]);const{add}=useCart();return <main className="container-x py-10 grid lg:grid-cols-2 gap-12 lg:gap-20"><div><div className="relative aspect-[4/5] bg-sand"><Image src={image} alt={p.name} fill className="object-cover"/></div><div className="flex gap-3 mt-3">{p.images.map(x=><button key={x} onClick={()=>setImage(x)} className="relative w-20 aspect-[4/5] bg-sand"><Image src={x} alt="" fill className="object-cover"/></button>)}</div></div><div className="lg:sticky lg:top-28 self-start"><p className="eyebrow text-brown">{p.type}</p><h1 className="display text-4xl mt-4">SPHINX — {p.name}</h1><p className="text-xl mt-5">{formatPrice(p.price)}</p><p className="text-muted leading-7 mt-7">{p.description}</p><div className="mt-9"><b className="text-sm">Цвет: {color}</b><div className="flex gap-2 mt-3">{p.colors.map(c=><button onClick={()=>setColor(c)} key={c} className={`px-4 py-2 text-xs border ${color===c?'border-ink':'border-black/15'}`}>{c}</button>)}</div></div><div className="mt-7"><b className="text-sm">Размер: {size}</b><div className="grid grid-cols-6 gap-2 mt-3">{p.sizes.map(s=><button onClick={()=>setSize(s)} key={s} className={`py-3 text-xs border ${size===s?'bg-ink text-white':'border-black/15'}`}>{s}</button>)}</div></div><div className="flex gap-3 mt-7"><div className="flex border border-black/20 items-center gap-4 px-4"><button onClick={()=>setQ(Math.max(1,q-1))}><Minus size={14}/></button>{q}<button onClick={()=>setQ(q+1)}><Plus size={14}/></button></div><button onClick={()=>add(p,color,size,q)} className="btn btn-dark flex-1">Добавить в корзину</button></div><a href={`https://t.me/${TELEGRAM_USERNAME}`} className="btn border border-ink w-full mt-3">Заказать в Telegram</a><div className="mt-10 border-t text-sm"><Info n="Описание" v={p.description}/><Info n="Состав" v={p.material}/><Info n="Посадка" v={p.fit+(p.gsm?` · ${p.gsm}`:'')}/><Info n="Доставка" v="По России курьерской службой. Бесплатно от 7 000 ₽."/></div></div></main>}
-function Info({n,v}:{n:string,v:string}){return <details className="border-b py-4"><summary className="cursor-pointer font-medium">{n}</summary><p className="text-muted mt-3 leading-6">{v}</p></details>}
+'use client';
+import { use, useState } from 'react';
+import Image from 'next/image';
+import { notFound } from 'next/navigation';
+import { Minus, Plus } from 'lucide-react';
+import { useCatalog } from '@/features/catalog';
+import { formatPrice, TELEGRAM_USERNAME } from '@/config/site';
+import { useCart } from '@/features/cart';
+import type { Product } from '@/types';
+export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  const { products, loading } = useCatalog();
+  const p = products.find((x) => x.slug === slug);
+  if (loading && !p) return <main className="container-x py-20 text-muted">Loading...</main>;
+  if (!p) notFound();
+  return <ProductDetails product={p} />;
+}
+function ProductDetails({ product: p }: { product: Product }) {
+  const [color, setColor] = useState(p.colors[0]);
+  const [size, setSize] = useState('M');
+  const [q, setQ] = useState(1);
+  const [image, setImage] = useState(p.images[0]);
+  const { add } = useCart();
+  return (
+    <main className="container-x py-10 grid lg:grid-cols-2 gap-12 lg:gap-20">
+      <div>
+        <div className="relative aspect-[4/5] bg-sand">
+          <Image src={image} alt={p.name} fill className="object-cover" />
+        </div>
+        <div className="flex gap-3 mt-3">
+          {p.images.map((x) => (
+            <button
+              key={x}
+              onClick={() => setImage(x)}
+              className="relative w-20 aspect-[4/5] bg-sand"
+            >
+              <Image src={x} alt="" fill className="object-cover" />
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="lg:sticky lg:top-28 self-start">
+        <p className="eyebrow text-brown">{p.type}</p>
+        <h1 className="display text-4xl mt-4">SPHINX — {p.name}</h1>
+        <p className="text-xl mt-5">{formatPrice(p.price)}</p>
+        <p className="text-muted leading-7 mt-7">{p.description}</p>
+        <div className="mt-9">
+          <b className="text-sm">Цвет: {color}</b>
+          <div className="flex gap-2 mt-3">
+            {p.colors.map((c) => (
+              <button
+                onClick={() => setColor(c)}
+                key={c}
+                className={`px-4 py-2 text-xs border ${color === c ? 'border-ink' : 'border-black/15'}`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-7">
+          <b className="text-sm">Размер: {size}</b>
+          <div className="grid grid-cols-6 gap-2 mt-3">
+            {p.sizes.map((s) => (
+              <button
+                onClick={() => setSize(s)}
+                key={s}
+                className={`py-3 text-xs border ${size === s ? 'bg-ink text-white' : 'border-black/15'}`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-3 mt-7">
+          <div className="flex border border-black/20 items-center gap-4 px-4">
+            <button onClick={() => setQ(Math.max(1, q - 1))}>
+              <Minus size={14} />
+            </button>
+            {q}
+            <button onClick={() => setQ(q + 1)}>
+              <Plus size={14} />
+            </button>
+          </div>
+          <button onClick={() => add(p, color, size, q)} className="btn btn-dark flex-1">
+            Добавить в корзину
+          </button>
+        </div>
+        <a href={`https://t.me/${TELEGRAM_USERNAME}`} className="btn border border-ink w-full mt-3">
+          Заказать в Telegram
+        </a>
+        <div className="mt-10 border-t text-sm">
+          <Info n="Описание" v={p.description} />
+          <Info n="Состав" v={p.material} />
+          <Info n="Посадка" v={p.fit + (p.gsm ? ` · ${p.gsm}` : '')} />
+          <Info n="Доставка" v="По России курьерской службой. Бесплатно от 7 000 ₽." />
+        </div>
+      </div>
+    </main>
+  );
+}
+function Info({ n, v }: { n: string; v: string }) {
+  return (
+    <details className="border-b py-4">
+      <summary className="cursor-pointer font-medium">{n}</summary>
+      <p className="text-muted mt-3 leading-6">{v}</p>
+    </details>
+  );
+}
