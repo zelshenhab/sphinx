@@ -1,7 +1,7 @@
 export const siteConfig = {
   name: 'SPHINX',
   tagline: 'THE GUARDIAN',
-  telegramUsername: 'SPHINX_STORE',
+  telegramUsername: 'sphinx2003',
   currency: 'RUB',
   locale: 'ru-RU',
   navigation: [

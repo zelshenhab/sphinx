@@ -4,7 +4,8 @@ import { TELEGRAM_USERNAME } from '@/config/site';
 import { clientStorage, storageKeys } from '@/core/storage/client-storage';
 import { useNotification } from '@/features/notifications';
 import { loadSettings, saveSettings } from '@/core/supabase/store';
-const defaults = {
+import { useCatalog } from '@/features/catalog';
+const defaults: Record<string, string> = {
   brand: 'SPHINX',
   tagline: 'THE GUARDIAN',
   telegram: TELEGRAM_USERNAME,
@@ -12,16 +13,23 @@ const defaults = {
   vk: 'https://vk.com/sphinx',
   announcement: 'Бесплатная доставка от 7 000 ₽',
   currency: 'RUB ₽',
+  sizes: 'XS, S, M, L, XL, XXL',
+  colors: 'Black, White, Sand',
 };
 export default function Settings() {
   const { notify } = useNotification();
+  const { refresh } = useCatalog();
   const [s, setS] = useState(defaults);
   const [saved, setSaved] = useState(false);
   useEffect(() => {
     const id = window.setTimeout(async () => {
       const local = clientStorage.get(storageKeys.settings, defaults);
       try {
-        setS(await loadSettings(local));
+        const remote = await loadSettings(local);
+        setS({
+          ...remote,
+          telegram: remote.telegram === 'SPHINX_STORE' ? TELEGRAM_USERNAME : remote.telegram,
+        });
       } catch (error) {
         console.info('[SPHINX_SETTINGS_LOCAL_FALLBACK]', error);
         setS(local);
@@ -50,6 +58,7 @@ export default function Settings() {
           clientStorage.set(storageKeys.settings, s);
           try {
             await saveSettings(s);
+            await refresh();
             setSaved(true);
             notify('settings_saved', 'success');
           } catch (error) {

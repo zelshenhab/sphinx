@@ -14,7 +14,27 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState('');
   const card = useRef<HTMLDivElement>(null);
-  const text = `SPHINX ORDER\n\nИмя: ${form.name}\n${items.map((x) => `${x.quantity} × ${x.product.name}\nРазмер: ${x.size}\nЦвет: ${x.color}\nЦена: ${formatPrice(x.product.price * x.quantity)}`).join('\n\n')}\n\nИтого: ${formatPrice(total)}\nГород: ${form.city}\nТелефон: ${form.phone}`;
+  const text = [
+    '🛍 SPHINX ORDER',
+    orderId ? `Order ID: ${orderId}` : '',
+    '',
+    `Имя: ${form.name}`,
+    `Телефон: ${form.phone}`,
+    form.telegram ? `Telegram: ${form.telegram}` : '',
+    `Город: ${form.city}`,
+    form.comment ? `Комментарий: ${form.comment}` : '',
+    '',
+    'Товары:',
+    ...items.map(
+      (item, index) =>
+        `${index + 1}. ${item.product.name}\n   Количество: ${item.quantity}\n   Цвет: ${item.color}\n   Размер: ${item.size}\n   Цена: ${formatPrice(item.product.price * item.quantity)}`,
+    ),
+    '',
+    `Итого: ${formatPrice(total)}`,
+  ]
+    .filter((line, index, lines) => line !== '' || lines[index - 1] !== '')
+    .join('\n');
+  const telegramUrl = `https://t.me/${TELEGRAM_USERNAME}?text=${encodeURIComponent(text)}`;
   const download = async () => {
     if (!card.current) return;
     const data = await toPng(card.current, { pixelRatio: 2 });
@@ -90,11 +110,9 @@ export default function Checkout() {
               <h2 className="display text-3xl">Заказ почти готов!</h2>
               {orderId && <p className="text-xs text-muted mt-2">Order ID: {orderId}</p>}
               <p className="text-sm leading-7 mt-3">
-                1. Скачайте карточку заказа
+                1. Нажмите «Отправить заказ»
                 <br />
-                2. Откройте Telegram
-                <br />
-                3. Отправьте карточку менеджеру SPHINX
+                2. Проверьте готовое сообщение и нажмите Send
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
                 <button className="btn btn-dark" onClick={download}>
@@ -106,8 +124,13 @@ export default function Checkout() {
                 >
                   Скопировать заказ
                 </button>
-                <a className="btn border border-ink" href={`https://t.me/${TELEGRAM_USERNAME}`}>
-                  Открыть Telegram
+                <a
+                  className="btn border border-ink"
+                  href={telegramUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Отправить заказ
                 </a>
               </div>
             </div>

@@ -2,12 +2,15 @@
 import { useMemo, useState } from 'react';
 import { ProductGrid, useCatalog } from '@/features/catalog';
 export default function Shop() {
-  const { products } = useCatalog();
+  const { categories, products } = useCatalog();
   const [cat, setCat] = useState('all');
   const [sort, setSort] = useState('new');
   const list = useMemo(
     () =>
       [...products]
+        .filter((product) =>
+          categories.some((category) => category.slug === product.category && category.active),
+        )
         .filter((p) => cat === 'all' || p.category === cat)
         .sort((a, b) =>
           sort === 'asc'
@@ -16,7 +19,7 @@ export default function Shop() {
               ? b.price - a.price
               : Number(b.isNew) - Number(a.isNew),
         ),
-    [cat, products, sort],
+    [cat, categories, products, sort],
   );
   return (
     <main className="container-x py-16">
@@ -25,10 +28,13 @@ export default function Shop() {
       <div className="flex flex-wrap justify-between gap-4 my-10 border-y py-5 border-black/10">
         <select className="bg-transparent" value={cat} onChange={(e) => setCat(e.target.value)}>
           <option value="all">Все категории</option>
-          <option value="t-shirts">Футболки</option>
-          <option value="hoodies">Худи</option>
-          <option value="sweatshirts">Свитшоты</option>
-          <option value="sport">Спорт</option>
+          {categories
+            .filter((category) => category.active)
+            .map((category) => (
+              <option key={category.id} value={category.slug}>
+                {category.name}
+              </option>
+            ))}
         </select>
         <div className="flex gap-5 text-sm text-muted">
           <span>Размер: Все</span>

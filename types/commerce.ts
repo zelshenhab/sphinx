@@ -9,6 +9,7 @@ export interface CartItem {
 
 export interface Order {
   id: string;
+  databaseId?: string;
   customer: string;
   items: number;
   total: number;

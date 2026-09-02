@@ -11,7 +11,14 @@ const configs = {
   Collections: { table: 'collections', fields: { Name: 'name', Slug: 'slug', Active: 'active' } },
   Banners: {
     table: 'banners',
-    fields: { Title: 'title', Subtitle: 'subtitle', 'CTA text': 'cta_text', 'CTA URL': 'cta_url' },
+    fields: {
+      Title: 'title',
+      Subtitle: 'subtitle',
+      Image: 'image',
+      'CTA text': 'cta_text',
+      'CTA URL': 'cta_url',
+      Active: 'active',
+    },
   },
 } as const;
 
@@ -43,6 +50,22 @@ export async function saveAdminContent(type: ContentType, rows: Row[]) {
     return record;
   });
   const { error } = await createClient().from(config.table).upsert(records);
+  if (error) throw error;
+}
+
+export async function uploadAdminImage(file: File) {
+  const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const path = `content/${crypto.randomUUID()}.${extension}`;
+  const supabase = createClient();
+  const { error } = await supabase.storage.from('product-images').upload(path, file, {
+    cacheControl: '3600',
+  });
+  if (error) throw error;
+  return supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+}
+
+export async function deleteAdminContent(type: ContentType, id: string) {
+  const { error } = await createClient().from(configs[type].table).delete().eq('id', id);
   if (error) throw error;
 }
 

@@ -15,7 +15,7 @@ interface SearchDialogProps {
 
 export function SearchDialog({ open, onClose }: SearchDialogProps) {
   const { language } = useLanguage();
-  const { products } = useCatalog();
+  const { categories, products } = useCatalog();
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const close = useCallback(() => {
@@ -47,13 +47,16 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
     if (!normalized) return [];
     return products
       .filter((product) =>
+        categories.some((category) => category.slug === product.category && category.active),
+      )
+      .filter((product) =>
         [product.name, product.category, product.description, product.type]
           .join(' ')
           .toLocaleLowerCase()
           .includes(normalized),
       )
       .slice(0, 8);
-  }, [products, query]);
+  }, [categories, products, query]);
 
   useEffect(() => {
     if (!open) return;

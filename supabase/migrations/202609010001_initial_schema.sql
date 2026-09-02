@@ -110,7 +110,7 @@ grant select, insert, update, delete on public.profiles, public.categories, publ
 grant usage, select on sequence public.orders_order_number_seq to authenticated;
 grant execute on function public.create_store_order(jsonb,jsonb) to anon, authenticated;
 
-create policy "public read active categories" on public.categories for select to anon,authenticated using(active or public.is_admin());
+create policy "public read active categories" on public.categories for select to anon,authenticated using(true);
 create policy "public read available products" on public.products for select to anon,authenticated using(in_stock or public.is_admin());
 create policy "public read active collections" on public.collections for select to anon,authenticated using(active or public.is_admin());
 create policy "public read collection products" on public.collection_products for select to anon,authenticated using(true);
@@ -135,7 +135,7 @@ create policy "admins update product images" on storage.objects for update to au
 create policy "admins delete product images" on storage.objects for delete to authenticated using(bucket_id='product-images' and public.is_admin());
 
 insert into public.categories(name,slug,image,sort_order) values
-('Футболки','t-shirts','/assets/products/egyptian-power-dark.svg',1),('Худи','hoodies','/assets/products/lotus-sand.svg',2),
+('Футболки','t-shirts','/assets/collections/tshirts-collection.png',1),('Худи','hoodies','/assets/products/lotus-sand.svg',2),
 ('Свитшоты','sweatshirts','/assets/products/heart-dark.svg',3),('Спорт','sport','/assets/products/performance-dark.svg',4)
 on conflict(slug) do nothing;
 
@@ -154,7 +154,7 @@ insert into public.products(id,name,slug,category_slug,description,price,old_pri
 on conflict(slug) do nothing;
 
 insert into public.store_settings(key,value) values
-('brand','"SPHINX"'),('tagline','"THE GUARDIAN"'),('telegram','"SPHINX_STORE"'),
+('brand','"SPHINX"'),('tagline','"THE GUARDIAN"'),('telegram','"sphinx2003"'),
 ('announcement','"Бесплатная доставка от 7 000 ₽"'),('currency','"RUB ₽"') on conflict(key) do nothing;
 
 -- After creating the first user in Authentication > Users, promote it once:

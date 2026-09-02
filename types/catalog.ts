@@ -16,6 +16,8 @@ export interface Product {
   colors: string[];
   sizes: string[];
   images: string[];
+  colorImages?: Record<string, string[]>;
+  stockQuantity?: number;
   featured: boolean;
   isNew?: boolean;
   isSale?: boolean;
@@ -40,4 +42,5 @@ export interface Collection {
   name: string;
   slug: string;
   productIds: string[];
+  active?: boolean;
 }

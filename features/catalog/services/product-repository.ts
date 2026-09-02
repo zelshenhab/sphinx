@@ -1,5 +1,5 @@
 import { createClient } from '@/core/supabase/client';
-import type { Category, Product } from '@/types';
+import type { Banner, Category, Collection, Product } from '@/types';
 
 interface ProductRow {
   id: string;
@@ -66,12 +66,31 @@ export function productToRow(product: Product) {
 }
 
 export async function listProducts() {
-  const { data, error } = await createClient()
-    .from('products')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const supabase = createClient();
+  const [{ data, error }, { data: mediaRows, error: mediaError }] = await Promise.all([
+    supabase.from('products').select('*').order('created_at', { ascending: false }),
+    supabase.from('store_settings').select('key,value'),
+  ]);
   if (error) throw error;
-  return (data as ProductRow[]).map(rowToProduct);
+  if (mediaError) throw mediaError;
+  const media = new Map(
+    (mediaRows ?? [])
+      .filter((row) => row.key.startsWith('product_color_images:'))
+      .map((row) => [
+        row.key.replace('product_color_images:', ''),
+        row.value as Record<string, string[]>,
+      ]),
+  );
+  const stock = new Map(
+    (mediaRows ?? [])
+      .filter((row) => row.key.startsWith('product_stock:'))
+      .map((row) => [row.key.replace('product_stock:', ''), Number(row.value)]),
+  );
+  return (data as ProductRow[]).map((row) => ({
+    ...rowToProduct(row),
+    colorImages: media.get(row.id) ?? {},
+    stockQuantity: stock.get(row.id) ?? 20,
+  }));
 }
 export async function listCategories(): Promise<Category[]> {
   const { data, error } = await createClient()
@@ -81,17 +100,91 @@ export async function listCategories(): Promise<Category[]> {
   if (error) throw error;
   return (data ?? []) as Category[];
 }
-export async function createProduct(product: Product) {
+export async function listCollections(): Promise<Collection[]> {
   const { data, error } = await createClient()
+    .from('collections')
+    .select('id,name,slug,active,collection_products(product_id)')
+    .order('created_at');
+  if (error) throw error;
+  return (data ?? []).map((collection) => ({
+    id: collection.id,
+    name: collection.name,
+    slug: collection.slug,
+    active: collection.active,
+    productIds: (collection.collection_products ?? []).map((item) => item.product_id),
+  }));
+}
+export async function listBanners(): Promise<Banner[]> {
+  const { data, error } = await createClient()
+    .from('banners')
+    .select('id,title,subtitle,image,cta_text,cta_url,active')
+    .order('sort_order');
+  if (error) throw error;
+  return (data ?? []).map((banner) => ({
+    id: banner.id,
+    title: banner.title,
+    subtitle: banner.subtitle,
+    image: banner.image,
+    ctaText: banner.cta_text,
+    ctaUrl: banner.cta_url,
+    active: banner.active,
+  }));
+}
+export async function listStoreSettings(): Promise<Record<string, string>> {
+  const { data, error } = await createClient().from('store_settings').select('key,value');
+  if (error) throw error;
+  return Object.fromEntries(
+    (data ?? [])
+      .filter((row) => typeof row.value === 'string')
+      .map((row) => [row.key, row.value as string]),
+  );
+}
+export async function createProduct(product: Product) {
+  const supabase = createClient();
+  const { data, error } = await supabase
     .from('products')
     .insert(productToRow(product))
     .select()
     .single();
   if (error) throw error;
-  return rowToProduct(data as ProductRow);
+  const created = {
+    ...rowToProduct(data as ProductRow),
+    colorImages: product.colorImages ?? {},
+    stockQuantity: product.stockQuantity ?? 20,
+  };
+  await saveProductMetadata(supabase, created);
+  return created;
+}
+export async function updateProduct(product: Product) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('products')
+    .update(productToRow(product))
+    .eq('id', product.id)
+    .select()
+    .single();
+  if (error) throw error;
+  await saveProductMetadata(supabase, product);
+  return {
+    ...rowToProduct(data as ProductRow),
+    colorImages: product.colorImages ?? {},
+    stockQuantity: product.stockQuantity ?? 20,
+  };
 }
 export async function deleteProduct(id: string) {
-  const { error } = await createClient().from('products').delete().eq('id', id);
+  const supabase = createClient();
+  const { error } = await supabase.from('products').delete().eq('id', id);
+  if (error) throw error;
+  await supabase
+    .from('store_settings')
+    .delete()
+    .in('key', [`product_color_images:${id}`, `product_stock:${id}`]);
+}
+async function saveProductMetadata(supabase: ReturnType<typeof createClient>, product: Product) {
+  const { error } = await supabase.from('store_settings').upsert([
+    { key: `product_color_images:${product.id}`, value: product.colorImages ?? {} },
+    { key: `product_stock:${product.id}`, value: product.stockQuantity ?? 20 },
+  ]);
   if (error) throw error;
 }
 export async function uploadProductImage(file: File) {

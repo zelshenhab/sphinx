@@ -9,6 +9,7 @@ import { clientStorage, storageKeys } from '@/core/storage/client-storage';
 import { LanguageSwitch } from '@/features/i18n';
 import { useNotification } from '@/features/notifications';
 import { SearchDialog } from '@/features/search';
+import { useCatalog } from '@/features/catalog';
 type CartCtx = {
   items: CartItem[];
   add: (p: Product, c: string, s: string, q?: number) => void;
@@ -46,15 +47,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const i = x.findIndex(
         (v) => v.product.id === product.id && v.color === color && v.size === size,
       );
-      if (i < 0) return [...x, { product, color, size, quantity }];
-      return x.map((v, n) => (n === i ? { ...v, quantity: v.quantity + quantity } : v));
+      const safeQuantity = Math.min(quantity, product.stockQuantity ?? 99);
+      if (i < 0) return [...x, { product, color, size, quantity: safeQuantity }];
+      return x.map((v, n) =>
+        n === i
+          ? { ...v, quantity: Math.min(v.quantity + safeQuantity, product.stockQuantity ?? 99) }
+          : v,
+      );
     });
     setOpen(true);
     notify('cart_added', 'success');
   };
   const change = (i: number, d: number) =>
     setItems((x) =>
-      x.map((v, n) => (n === i ? { ...v, quantity: Math.max(1, v.quantity + d) } : v)),
+      x.map((v, n) =>
+        n === i
+          ? {
+              ...v,
+              quantity: Math.min(v.product.stockQuantity ?? 99, Math.max(1, v.quantity + d)),
+            }
+          : v,
+      ),
     );
   const remove = (i: number) => {
     setItems((x) => x.filter((_, n) => n !== i));
@@ -83,12 +96,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 const nav = siteConfig.navigation.map(({ label, href }) => [label, href] as const);
 export function Header() {
   const { count, setOpen } = useCart();
+  const { categories, settings } = useCatalog();
+  const visibleNav = [
+    ...nav,
+    ...categories
+      .filter((category) => !nav.some(([, href]) => href === `/shop/${category.slug}`))
+      .map((category) => [category.name, `/shop/${category.slug}`] as const),
+  ];
+  const telegram = settings.telegram || TELEGRAM_USERNAME;
   const [menu, setMenu] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   return (
     <>
       <div className="bg-ink text-white text-center py-2 text-[10px] tracking-[.2em]">
-        БЕСПЛАТНАЯ ДОСТАВКА ОТ 7 000 ₽
+        {settings.announcement || 'БЕСПЛАТНАЯ ДОСТАВКА ОТ 7 000 ₽'}
       </div>
       <header className="sticky top-0 z-40 bg-ivory/95 backdrop-blur border-b border-black/10">
         <div className="container-x h-20 flex items-center justify-between">
@@ -96,11 +117,13 @@ export function Header() {
             <Menu />
           </button>
           <Link href="/" className="text-center leading-none">
-            <b className="display text-2xl tracking-[.22em]">SPHINX</b>
-            <small className="block text-[7px] tracking-[.42em] mt-1">THE GUARDIAN</small>
+            <b className="display text-2xl tracking-[.22em]">{settings.brand || 'SPHINX'}</b>
+            <small className="block text-[7px] tracking-[.42em] mt-1">
+              {settings.tagline || 'THE GUARDIAN'}
+            </small>
           </Link>
           <nav className="hidden lg:flex gap-6 text-[11px] uppercase tracking-wider">
-            {nav.map(([n, h]) => (
+            {visibleNav.map(([n, h]) => (
               <Link key={h} href={h} className="hover:text-brown">
                 {n}
               </Link>
@@ -111,7 +134,7 @@ export function Header() {
             <button onClick={() => setSearchOpen(true)} aria-label="Search" className="p-1">
               <Search size={18} />
             </button>
-            <a href={`https://t.me/${TELEGRAM_USERNAME}`}>
+            <a href={`https://t.me/${telegram}`}>
               <Send size={17} />
             </a>
             <button onClick={() => setOpen(true)} className="relative">
@@ -126,7 +149,7 @@ export function Header() {
         </div>
         {menu && (
           <nav className="lg:hidden px-6 pb-6 grid gap-4">
-            {nav.map(([n, h]) => (
+            {visibleNav.map(([n, h]) => (
               <Link onClick={() => setMenu(false)} key={h} href={h}>
                 {n}
               </Link>
@@ -139,12 +162,13 @@ export function Header() {
   );
 }
 export function Footer() {
+  const { settings } = useCatalog();
   return (
     <footer className="bg-ink text-white mt-24">
       <div className="container-x py-16 grid md:grid-cols-3 gap-10">
         <div>
-          <div className="display text-3xl tracking-[.2em]">SPHINX</div>
-          <div className="eyebrow mt-2 text-white/50">The Guardian</div>
+          <div className="display text-3xl tracking-[.2em]">{settings.brand || 'SPHINX'}</div>
+          <div className="eyebrow mt-2 text-white/50">{settings.tagline || 'The Guardian'}</div>
         </div>
         <p className="text-sm text-white/60 max-w-sm">
           Современная одежда, вдохновлённая культурой и наследием Египта.

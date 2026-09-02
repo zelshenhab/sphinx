@@ -7,6 +7,7 @@ import {
   listProducts,
   products as seed,
   uploadProductImage,
+  updateProduct,
   useCatalog,
 } from '@/features/catalog';
 import { Product } from '@/types';
@@ -19,6 +20,7 @@ const blank = {
   category: 't-shirts',
   price: '',
   oldPrice: '',
+  stock: '20',
   description: '',
   material: '100% хлопок',
   gsm: '240 GSM',
@@ -36,14 +38,58 @@ function load() {
 }
 export default function Products() {
   const { notify } = useNotification();
-  const { refresh } = useCatalog();
-  const [list, setList] = useState<Product[]>(load);
+  const { categories, refresh, settings } = useCatalog();
+  const [list, setList] = useState<Product[]>(seed);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blank);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [colorImages, setColorImages] = useState<Record<string, string[]>>({});
+  const [galleryColor, setGalleryColor] = useState('Black');
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const selectedColors = form.colors
+    .split(',')
+    .map((color) => color.trim())
+    .filter(Boolean);
+  const colorOptions = Array.from(
+    new Set([
+      ...(settings.colors || blank.colors)
+        .split(',')
+        .map((color) => color.trim())
+        .filter(Boolean),
+      ...selectedColors,
+    ]),
+  );
+  const selectedSizes = form.sizes
+    .split(',')
+    .map((size) => size.trim())
+    .filter(Boolean);
+  const sizeOptions = Array.from(
+    new Set([
+      ...(settings.sizes || blank.sizes)
+        .split(',')
+        .map((size) => size.trim())
+        .filter(Boolean),
+      ...selectedSizes,
+    ]),
+  );
+  const toggleSize = (size: string) => {
+    const next = selectedSizes.includes(size)
+      ? selectedSizes.filter((item) => item !== size)
+      : [...selectedSizes, size];
+    setForm({ ...form, sizes: next.join(', ') });
+  };
+  const toggleColor = (color: string) => {
+    const next = selectedColors.includes(color)
+      ? selectedColors.filter((item) => item !== color)
+      : [...selectedColors, color];
+    setForm({ ...form, colors: next.join(', ') });
+  };
   useEffect(() => {
     const id = window.setTimeout(async () => {
+      const local = load();
+      if (local.length) setList(local);
       try {
         const remote = await listProducts();
         if (remote.length) setList(remote);
@@ -59,18 +105,26 @@ export default function Products() {
   };
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.slug.trim() || !Number(form.price)) {
-      setError('اكتب اسم المنتج وSlug والسعر.');
+    if (
+      !form.name.trim() ||
+      !form.slug.trim() ||
+      !Number(form.price) ||
+      !selectedSizes.length ||
+      !selectedColors.length
+    ) {
+      setError('اكتب اسم المنتج وSlug والسعر واختار مقاس ولون واحد على الأقل.');
       notify('required_fields', 'warning');
       return;
     }
+    const existingProduct = editingId ? list.find((item) => item.id === editingId) : undefined;
     const p: Product = {
-      id: Date.now().toString(),
+      id: editingId ?? Date.now().toString(),
       name: form.name.trim(),
       slug: form.slug.trim().toLowerCase().replace(/\s+/g, '-'),
       category: form.category,
       price: Number(form.price),
       oldPrice: form.oldPrice ? Number(form.oldPrice) : undefined,
+      stockQuantity: Math.max(0, Number(form.stock)),
       description: form.description || 'Новая модель SPHINX.',
       material: form.material,
       gsm: form.gsm || undefined,
@@ -83,19 +137,24 @@ export default function Products() {
         .split(',')
         .map((x) => x.trim())
         .filter(Boolean),
-      images: [form.image || blank.image],
+      images: [form.image || blank.image, ...(existingProduct?.images.slice(1) ?? [])],
+      colorImages,
       type: form.type,
       featured: form.featured,
       isNew: form.isNew,
       isSale: form.isSale,
     };
     try {
-      const remoteProduct = await createProduct(p);
-      save([remoteProduct, ...list]);
+      const remoteProduct = editingId ? await updateProduct(p) : await createProduct(p);
+      save(
+        editingId
+          ? list.map((item) => (item.id === editingId ? remoteProduct : item))
+          : [remoteProduct, ...list],
+      );
       await refresh();
     } catch (createError) {
       console.error('[SPHINX_PRODUCT_CREATE_ERROR]', createError);
-      save([p, ...list]);
+      save(editingId ? list.map((item) => (item.id === editingId ? p : item)) : [p, ...list]);
       notify(
         {
           ru: 'Supabase недоступен — товар сохранён локально',
@@ -105,6 +164,8 @@ export default function Products() {
       );
     }
     setForm(blank);
+    setColorImages({});
+    setEditingId(null);
     setError('');
     setOpen(false);
     notify('product_created', 'success');
@@ -122,6 +183,26 @@ export default function Products() {
       setUploading(false);
     }
   };
+  const uploadGalleryImages = async (files: FileList) => {
+    if (!galleryColor) return;
+    setGalleryUploading(true);
+    try {
+      const urls = await Promise.all(Array.from(files).map(uploadProductImage));
+      setColorImages((current) => ({
+        ...current,
+        [galleryColor]: [...(current[galleryColor] ?? []), ...urls].slice(0, 4),
+      }));
+      notify({ ru: 'Изображения цвета загружены', en: 'Color images uploaded' }, 'success');
+    } catch (uploadError) {
+      console.error('[SPHINX_COLOR_IMAGES_UPLOAD_ERROR]', uploadError);
+      notify(
+        { ru: 'Не удалось загрузить изображения цвета', en: 'Could not upload color images' },
+        'error',
+      );
+    } finally {
+      setGalleryUploading(false);
+    }
+  };
   return (
     <div className="admin-card overflow-auto">
       <div className="flex justify-between items-center mb-6">
@@ -129,7 +210,24 @@ export default function Products() {
           <h2 className="display text-2xl">Товары</h2>
           <p className="text-xs text-muted mt-1">{list.length} товаров · сохранение в браузере</p>
         </div>
-        <button onClick={() => setOpen(!open)} className="btn btn-dark">
+        <button
+          onClick={() => {
+            const next = !open;
+            if (next)
+              setForm({
+                ...blank,
+                sizes: settings.sizes || blank.sizes,
+                colors: settings.colors || blank.colors,
+              });
+            if (next) {
+              setEditingId(null);
+              setColorImages({});
+              setGalleryColor((settings.colors || blank.colors).split(',')[0].trim());
+            }
+            setOpen(next);
+          }}
+          className="btn btn-dark"
+        >
           {open ? 'Закрыть' : 'Добавить товар'}
         </button>
       </div>
@@ -161,10 +259,11 @@ export default function Products() {
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
-                <option value="t-shirts">T-Shirts</option>
-                <option value="hoodies">Hoodies</option>
-                <option value="sweatshirts">Sweatshirts</option>
-                <option value="sport">Sport</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.slug}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
             </label>
             <Field
@@ -179,6 +278,12 @@ export default function Products() {
               value={form.oldPrice}
               change={(v) => setForm({ ...form, oldPrice: v })}
             />
+            <Field
+              label="Stock quantity"
+              type="number"
+              value={form.stock}
+              change={(v) => setForm({ ...form, stock: v })}
+            />
             <label>
               <T>Product type</T>
               <select
@@ -190,16 +295,114 @@ export default function Products() {
                 <option>Performance</option>
               </select>
             </label>
-            <Field
-              label="Colors"
-              value={form.colors}
-              change={(v) => setForm({ ...form, colors: v })}
-            />
-            <Field
-              label="Sizes"
-              value={form.sizes}
-              change={(v) => setForm({ ...form, sizes: v })}
-            />
+            <div className="md:col-span-2 xl:col-span-2">
+              <T>Available colors</T>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {colorOptions.map((color) => {
+                  const selected = selectedColors.includes(color);
+                  return (
+                    <label
+                      key={color}
+                      className={`cursor-pointer flex items-center gap-2 border px-4 py-3 text-sm transition ${selected ? 'bg-ink text-white border-ink' : 'bg-white border-black/15'}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={selected}
+                        onChange={() => toggleColor(color)}
+                      />
+                      <span
+                        className="w-4 h-4 rounded-full border border-black/20"
+                        style={{ backgroundColor: color.toLowerCase() }}
+                      />
+                      {color}
+                    </label>
+                  );
+                })}
+              </div>
+              {!selectedColors.length && (
+                <p className="text-xs text-red-700 mt-2">Выберите хотя бы один цвет</p>
+              )}
+            </div>
+            <div className="md:col-span-2 xl:col-span-3 border border-black/10 bg-white p-4">
+              <T>Images for each color (up to 4)</T>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {selectedColors.map((color) => (
+                  <button
+                    type="button"
+                    key={color}
+                    onClick={() => setGalleryColor(color)}
+                    className={`px-4 py-2 text-xs border ${galleryColor === color ? 'bg-ink text-white border-ink' : 'border-black/15'}`}
+                  >
+                    {color} · {colorImages[color]?.length ?? 0}/4
+                  </button>
+                ))}
+              </div>
+              {galleryColor && selectedColors.includes(galleryColor) && (
+                <div className="mt-4">
+                  <div className="flex flex-wrap gap-3">
+                    {(colorImages[galleryColor] ?? []).map((url, imageIndex) => (
+                      <div key={`${url}-${imageIndex}`} className="relative w-20 h-24 bg-sand">
+                        <Image src={url} alt="" fill className="object-cover" />
+                        <button
+                          type="button"
+                          aria-label="Remove image"
+                          onClick={() =>
+                            setColorImages((current) => ({
+                              ...current,
+                              [galleryColor]: current[galleryColor].filter(
+                                (_, index) => index !== imageIndex,
+                              ),
+                            }))
+                          }
+                          className="absolute top-1 right-1 bg-white text-red-700 w-6 h-6"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <input
+                    className="field mt-3"
+                    type="file"
+                    multiple
+                    accept="image/png,image/jpeg,image/webp,image/avif"
+                    disabled={galleryUploading || (colorImages[galleryColor]?.length ?? 0) >= 4}
+                    onChange={(event) => {
+                      if (event.target.files?.length) void uploadGalleryImages(event.target.files);
+                    }}
+                  />
+                  <p className="text-[11px] text-muted mt-2">
+                    {galleryUploading ? 'Uploading...' : `Upload 3–4 images for ${galleryColor}`}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="md:col-span-2 xl:col-span-2">
+              <T>Available sizes</T>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {sizeOptions.map((size) => {
+                  const selected = selectedSizes.includes(size);
+                  return (
+                    <label
+                      key={size}
+                      className={`cursor-pointer min-w-12 text-center border px-4 py-3 text-sm transition ${selected ? 'bg-ink text-white border-ink' : 'bg-white border-black/15'}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={selected}
+                        onChange={() => toggleSize(size)}
+                      />
+                      {size}
+                    </label>
+                  );
+                })}
+              </div>
+              {!selectedSizes.length && (
+                <p className="text-xs text-red-700 mt-2">Выберите хотя бы один размер</p>
+              )}
+            </div>
             <Field
               label="Image path"
               value={form.image}
@@ -254,7 +457,7 @@ export default function Products() {
           </div>
           {error && <p className="text-red-700 text-sm mt-4">{error}</p>}
           <button type="submit" className="btn btn-dark mt-5">
-            Сохранить товар
+            {editingId ? 'Обновить товар' : 'Сохранить товар'}
           </button>
         </form>
       )}
@@ -281,8 +484,48 @@ export default function Products() {
               <td>{formatPrice(p.price)}</td>
               <td>{p.oldPrice ? formatPrice(p.oldPrice) : '—'}</td>
               <td className="text-green-700">Active</td>
-              <td>In stock</td>
+              <td
+                className={
+                  p.stockQuantity === 0
+                    ? 'text-red-700'
+                    : p.stockQuantity !== undefined && p.stockQuantity <= 10
+                      ? 'text-amber-700'
+                      : 'text-green-700'
+                }
+              >
+                {p.stockQuantity ?? 20} pcs
+              </td>
               <td className="space-x-3">
+                <button
+                  onClick={() => {
+                    setEditingId(p.id);
+                    setColorImages(p.colorImages ?? {});
+                    setGalleryColor(p.colors[0] ?? 'Black');
+                    setForm({
+                      name: p.name,
+                      slug: p.slug,
+                      category: p.category,
+                      price: String(p.price),
+                      oldPrice: p.oldPrice ? String(p.oldPrice) : '',
+                      stock: String(p.stockQuantity ?? 20),
+                      description: p.description,
+                      material: p.material,
+                      gsm: p.gsm || '',
+                      fit: p.fit,
+                      colors: p.colors.join(', '),
+                      sizes: p.sizes.join(', '),
+                      image: p.images[0] || blank.image,
+                      type: p.type,
+                      featured: p.featured,
+                      isNew: p.isNew ?? false,
+                      isSale: p.isSale ?? false,
+                    });
+                    setOpen(true);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  Edit
+                </button>
                 <button
                   onClick={async () => {
                     const copy = {

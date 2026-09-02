@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { formatPrice } from '@/config/site';
-import { listOrders } from '@/core/supabase/store';
+import { listOrders, updateOrderStatus } from '@/core/supabase/store';
 import type { Order } from '@/types';
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -36,7 +36,25 @@ export default function Orders() {
               <td className="py-4">{o.items}</td>
               <td className="py-4">{formatPrice(o.total)}</td>
               <td className="py-4">{o.date}</td>
-              <td className="py-4">{o.status}</td>
+              <td className="py-4">
+                <select
+                  className="field"
+                  value={o.status}
+                  onChange={async (event) => {
+                    const status = event.target.value;
+                    if (o.databaseId) await updateOrderStatus(o.databaseId, status);
+                    setOrders((current) =>
+                      current.map((item) => (item.id === o.id ? { ...item, status } : item)),
+                    );
+                  }}
+                >
+                  {['new', 'contacted', 'confirmed', 'shipped', 'completed', 'cancelled'].map(
+                    (status) => (
+                      <option key={status}>{status}</option>
+                    ),
+                  )}
+                </select>
+              </td>
             </tr>
           ))}
         </tbody>

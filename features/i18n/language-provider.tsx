@@ -57,6 +57,26 @@ const translations: Record<string, string> = {
   'Заказ почти готов!': 'Your order is almost ready!',
   'Скачать заказ': 'Download order',
   'Скопировать заказ': 'Copy order',
+  'Отправить заказ': 'Send order',
+  '1. Нажмите «Отправить заказ»': '1. Click “Send order”',
+  '2. Проверьте готовое сообщение и нажмите Send': '2. Review the prepared message and press Send',
+  'Скоро в продаже': 'Coming soon',
+  'Сейчас недоступно': 'Currently unavailable',
+  'Эта коллекция сейчас недоступна. Мы уже готовим её и скоро добавим товары.':
+    'This collection is currently unavailable. We are preparing it and will add products soon.',
+  'Смотреть доступные товары': 'Shop available products',
+  'Нет в наличии': 'Out of stock',
+  'НЕТ В НАЛИЧИИ': 'OUT OF STOCK',
+  'Зачёркнутые цвета сейчас недоступны': 'Crossed-out colors are currently unavailable',
+  'Зачёркнутые размеры сейчас недоступны': 'Crossed-out sizes are currently unavailable',
+  'Выберите хотя бы один цвет': 'Select at least one color',
+  'Выберите хотя бы один размер': 'Select at least one size',
+  'Обновить товар': 'Update product',
+  'Сохранение...': 'Saving...',
+  'Записей пока нет. Нажмите «Добавить».': 'No records yet. Click “Add”.',
+  Отмена: 'Cancel',
+  'Сохранено в Supabase': 'Saved to Supabase',
+  'Бесплатная доставка от 7 000 ₽': 'Free shipping from 7,000 ₽',
   'Прошлое не исчезает. Оно становится частью тебя.':
     'The past never disappears. It becomes part of you.',
   'Наследие в движении': 'Heritage in motion',
@@ -105,10 +125,29 @@ const reverse = Object.fromEntries(Object.entries(translations).map(([ru, en]) =
 const reversePlaceholders = Object.fromEntries(
   Object.entries(placeholders).map(([ru, en]) => [en, ru]),
 );
-function replaceText(value: string, map: Record<string, string>) {
+function replaceText(value: string, map: Record<string, string>, language: Language) {
   const trimmed = value.trim();
   const replacement = map[trimmed];
-  return replacement ? value.replace(trimmed, replacement) : value;
+  if (replacement) return value.replace(trimmed, replacement);
+  const patterns: Array<[RegExp, string]> =
+    language === 'en'
+      ? [
+          [/^Осталось всего (\d+) шт\.$/, 'Only $1 left'],
+          [/^Осталось (\d+) шт\.$/, 'Only $1 left'],
+          [/^Цвет: (.+)$/, 'Color: $1'],
+          [/^Размер: (.+)$/, 'Size: $1'],
+          [/^(\d+) товаров · сохранение в браузере$/, '$1 products · saved in browser'],
+        ]
+      : [
+          [/^Only (\d+) left$/, 'Осталось всего $1 шт.'],
+          [/^Color: (.+)$/, 'Цвет: $1'],
+          [/^Size: (.+)$/, 'Размер: $1'],
+          [/^(\d+) products · saved in browser$/, '$1 товаров · сохранение в браузере'],
+        ];
+  for (const [pattern, next] of patterns) {
+    if (pattern.test(trimmed)) return value.replace(trimmed, trimmed.replace(pattern, next));
+  }
+  return value;
 }
 function translatePage(language: Language) {
   document.documentElement.lang = language;
@@ -119,7 +158,7 @@ function translatePage(language: Language) {
   while ((node = walker.nextNode())) {
     const parent = node.parentElement;
     if (parent && !['SCRIPT', 'STYLE'].includes(parent.tagName) && node.nodeValue) {
-      const next = replaceText(node.nodeValue, map);
+      const next = replaceText(node.nodeValue, map, language);
       if (next !== node.nodeValue) node.nodeValue = next;
     }
   }
@@ -148,7 +187,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const observer = new MutationObserver(() =>
       requestAnimationFrame(() => translatePage(language)),
     );
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, characterData: true, subtree: true });
     return () => observer.disconnect();
   }, [language, pathname]);
   const setLanguage = (next: Language) => {

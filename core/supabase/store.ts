@@ -26,12 +26,18 @@ export async function listOrders(): Promise<Order[]> {
   if (error) throw error;
   return (data ?? []).map((order) => ({
     id: `SPX-${String(order.order_number).padStart(4, '0')}`,
+    databaseId: order.id,
     customer: order.customer_name,
     items: (order.order_items ?? []).reduce((sum, item) => sum + item.quantity, 0),
     total: order.total,
     date: new Intl.DateTimeFormat('ru-RU').format(new Date(order.created_at)),
     status: order.status,
   }));
+}
+
+export async function updateOrderStatus(id: string, status: string) {
+  const { error } = await createClient().from('orders').update({ status }).eq('id', id);
+  if (error) throw error;
 }
 
 export async function loadSettings<T extends Record<string, string>>(fallback: T): Promise<T> {
