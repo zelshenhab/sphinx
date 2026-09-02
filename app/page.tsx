@@ -118,7 +118,8 @@ function CategoryCard({
     <>
       <div className="absolute inset-0 grid place-items-center bg-sand text-center p-5">
         <div>
-          <p className="eyebrow text-brown">Coming soon</p>
+          <h3 className="display text-2xl">{category.name}</h3>
+          <p className="eyebrow text-brown mt-4">Coming soon</p>
           <p className="display text-2xl mt-3">Скоро в продаже</p>
           <p className="text-xs text-muted mt-2">Сейчас недоступно</p>
         </div>
