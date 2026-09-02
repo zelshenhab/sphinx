@@ -176,7 +176,6 @@ export function Footer() {
         <div className="md:text-right text-sm space-x-5">
           <Link href="/about">О бренде</Link>
           <Link href="/contact">Контакты</Link>
-          <Link href="/admin">Admin</Link>
         </div>
       </div>
     </footer>
