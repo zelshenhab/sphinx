@@ -33,9 +33,17 @@ export interface Order {
 export interface Banner {
   id: string;
   title: string;
+  titleEn?: string;
   subtitle: string;
+  subtitleEn?: string;
   image: string;
+  mobileImage?: string;
   ctaText: string;
+  ctaTextEn?: string;
   ctaUrl: string;
+  location?: 'home' | 'shop';
+  startsAt?: string;
+  endsAt?: string;
+  sortOrder?: number;
   active: boolean;
 }

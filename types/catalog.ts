@@ -42,7 +42,13 @@ export interface Category {
 export interface Collection {
   id: string;
   name: string;
+  nameEn?: string;
   slug: string;
+  description?: string;
+  descriptionEn?: string;
+  image?: string;
+  status?: 'available' | 'coming-soon';
+  sortOrder?: number;
   productIds: string[];
   active?: boolean;
 }

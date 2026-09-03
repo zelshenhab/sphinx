@@ -124,26 +124,50 @@ export async function listCategories(): Promise<Category[]> {
   return (data ?? []) as Category[];
 }
 export async function listCollections(): Promise<Collection[]> {
-  const { data, error } = await createClient()
-    .from('collections')
-    .select('id,name,slug,active,collection_products(product_id)')
-    .order('created_at');
+  const supabase = createClient();
+  const [{ data, error }, { data: metaRows }] = await Promise.all([
+    supabase
+      .from('collections')
+      .select('id,name,slug,active,collection_products(product_id)')
+      .order('created_at'),
+    supabase.from('store_settings').select('key,value').like('key', 'collection_meta:%'),
+  ]);
   if (error) throw error;
-  return (data ?? []).map((collection) => ({
-    id: collection.id,
-    name: collection.name,
-    slug: collection.slug,
-    active: collection.active,
-    productIds: (collection.collection_products ?? []).map((item) => item.product_id),
-  }));
+  const metadata = new Map(
+    (metaRows ?? []).map((row) => [
+      row.key.replace('collection_meta:', ''),
+      row.value as Partial<Collection>,
+    ]),
+  );
+  return (data ?? [])
+    .map((collection) => ({
+      ...metadata.get(collection.id),
+      id: collection.id,
+      name: collection.name,
+      slug: collection.slug,
+      active: collection.active,
+      productIds: (collection.collection_products ?? []).map((item) => item.product_id),
+    }))
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 }
 export async function listBanners(): Promise<Banner[]> {
-  const { data, error } = await createClient()
-    .from('banners')
-    .select('id,title,subtitle,image,cta_text,cta_url,active')
-    .order('sort_order');
+  const supabase = createClient();
+  const [{ data, error }, { data: metaRows }] = await Promise.all([
+    supabase
+      .from('banners')
+      .select('id,title,subtitle,image,cta_text,cta_url,active,sort_order')
+      .order('sort_order'),
+    supabase.from('store_settings').select('key,value').like('key', 'banner_meta:%'),
+  ]);
   if (error) throw error;
+  const metadata = new Map(
+    (metaRows ?? []).map((row) => [
+      row.key.replace('banner_meta:', ''),
+      row.value as Partial<Banner>,
+    ]),
+  );
   return (data ?? []).map((banner) => ({
+    ...metadata.get(banner.id),
     id: banner.id,
     title: banner.title,
     subtitle: banner.subtitle,
@@ -151,6 +175,7 @@ export async function listBanners(): Promise<Banner[]> {
     ctaText: banner.cta_text,
     ctaUrl: banner.cta_url,
     active: banner.active,
+    sortOrder: banner.sort_order,
   }));
 }
 export async function listStoreSettings(): Promise<Record<string, string>> {

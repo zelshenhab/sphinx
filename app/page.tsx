@@ -5,19 +5,39 @@ import Link from 'next/link';
 import { FeaturedProductGrid, ProductGrid, useCatalog } from '@/features/catalog';
 import { TELEGRAM_USERNAME } from '@/config/site';
 import { BrandWordmark } from '@/components/ui/brand-wordmark';
+import { useLanguage } from '@/features/i18n';
 export default function Home() {
   const { banners, categories, collections, products } = useCatalog();
-  const banner = banners.find((item) => item.active);
+  const { language } = useLanguage();
+  const [now] = useState(() => Date.now());
+  const banner = banners.find((item) => {
+    const started = !item.startsAt || new Date(item.startsAt).getTime() <= now;
+    const notEnded = !item.endsAt || new Date(item.endsAt).getTime() >= now;
+    return item.active && (item.location ?? 'home') === 'home' && started && notEnded;
+  });
+  const bannerTitle = language === 'en' && banner?.titleEn ? banner.titleEn : banner?.title;
+  const bannerSubtitle =
+    language === 'en' && banner?.subtitleEn ? banner.subtitleEn : banner?.subtitle;
+  const bannerCta = language === 'en' && banner?.ctaTextEn ? banner.ctaTextEn : banner?.ctaText;
   return (
     <main>
       <section className="min-h-[78vh] bg-sand relative overflow-hidden flex items-end">
         {banner?.image && (
           <Image
             src={banner.image}
-            alt={banner.title}
+            alt={bannerTitle ?? banner.title}
             fill
             priority
-            className="object-cover hero-image"
+            className={`object-cover hero-image ${banner.mobileImage ? 'hidden md:block' : ''}`}
+          />
+        )}
+        {banner?.mobileImage && (
+          <Image
+            src={banner.mobileImage}
+            alt={bannerTitle ?? banner.title}
+            fill
+            priority
+            className="object-cover hero-image md:hidden"
           />
         )}
         <div className="absolute right-0 top-0 hidden md:grid w-1/2 h-full place-items-center border-l border-brown/10 bg-ivory/45">
@@ -25,9 +45,9 @@ export default function Home() {
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-sand via-sand/85 to-transparent" />
         <div className="container-x relative w-full pb-20 md:pb-28">
-          <p className="eyebrow mb-6">{banner?.subtitle || 'The Guardian · 2026'}</p>
+          <p className="eyebrow mb-6">{bannerSubtitle || 'The Guardian · 2026'}</p>
           <h1 className="display text-6xl md:text-8xl tracking-[.08em] hero-wordmark">
-            {banner?.title || 'SPHINX'}
+            {bannerTitle || 'SPHINX'}
           </h1>
           <p className="text-xl md:text-3xl display mt-5 max-w-lg">
             Наследие Египта.
@@ -36,7 +56,7 @@ export default function Home() {
           </p>
           <div className="flex gap-3 mt-9">
             <Link href={banner?.ctaUrl || '/shop'} className="btn btn-dark">
-              {banner?.ctaText || 'Смотреть коллекцию'}
+              {bannerCta || 'Смотреть коллекцию'}
             </Link>
             <Link href="/shop?sort=new" className="btn btn-light">
               Новинки
@@ -52,11 +72,46 @@ export default function Home() {
               collection.productIds.includes(product.id) &&
               categories.some((category) => category.slug === product.category && category.active),
           );
+          const collectionName =
+            language === 'en' && collection.nameEn ? collection.nameEn : collection.name;
+          const collectionDescription =
+            language === 'en' && collection.descriptionEn
+              ? collection.descriptionEn
+              : collection.description;
+          if (collection.status === 'coming-soon') {
+            return (
+              <section className="container-x pb-24" key={collection.id}>
+                <div className="relative min-h-80 overflow-hidden bg-sand grid place-items-center text-white">
+                  {collection.image && (
+                    <Image
+                      src={collection.image}
+                      alt={collectionName}
+                      fill
+                      className="object-cover scale-110 blur-xl brightness-[.4] category-unavailable-image"
+                    />
+                  )}
+                  <div className="relative text-center p-8">
+                    <h2 className="display text-4xl">{collectionName}</h2>
+                    {collectionDescription && (
+                      <p className="mt-3 text-white/75">{collectionDescription}</p>
+                    )}
+                    <p className="display text-2xl mt-5">
+                      {language === 'en' ? 'Coming soon' : 'Скоро в продаже'}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            );
+          }
           if (!collectionProducts.length) return null;
           return (
             <section className="container-x pb-24" key={collection.id}>
               <p className="eyebrow text-brown">Коллекция</p>
-              <h2 className="display text-4xl mt-3 mb-10">{collection.name}</h2>
+              <h2 className="display text-4xl mt-3">{collectionName}</h2>
+              {collectionDescription && (
+                <p className="text-muted mt-3 mb-10">{collectionDescription}</p>
+              )}
+              {!collectionDescription && <div className="mb-10" />}
               <ProductGrid products={collectionProducts} />
             </section>
           );
