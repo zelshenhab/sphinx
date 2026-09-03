@@ -12,7 +12,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const { slug } = use(params);
   const { categories, products, loading } = useCatalog();
   const p = products.find((x) => x.slug === slug);
-  if (loading) return <main className="container-x py-20 text-muted">Loading...</main>;
+  if (loading)
+    return (
+      <main className="container-x py-8 grid lg:grid-cols-2 gap-10" aria-label="Loading product">
+        <div className="aspect-[4/5] skeleton-shimmer" />
+        <div className="space-y-5 pt-6">
+          <div className="h-3 w-24 skeleton-shimmer" />
+          <div className="h-10 w-4/5 skeleton-shimmer" />
+          <div className="h-5 w-32 skeleton-shimmer" />
+          <div className="h-24 w-full skeleton-shimmer" />
+          <div className="h-12 w-full skeleton-shimmer" />
+        </div>
+      </main>
+    );
   if (!p || !categories.some((category) => category.slug === p.category && category.active))
     notFound();
   return (
@@ -185,7 +197,7 @@ function ProductDetails({ product: p }: { product: Product }) {
                     onClick={() => selectColor(c)}
                     key={c}
                     title={available ? c : `${c} — недоступен`}
-                    className={`relative flex items-center gap-2 px-4 py-2 text-xs border ${color === c && available ? 'border-ink bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-40 line-through bg-black/5'}`}
+                    className={`relative flex items-center gap-2 px-4 py-2 text-xs border active:scale-95 ${color === c && available ? 'border-ink bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-40 line-through bg-black/5'}`}
                   >
                     <span
                       className="w-3.5 h-3.5 rounded-full border border-black/20"
@@ -213,7 +225,7 @@ function ProductDetails({ product: p }: { product: Product }) {
                     }}
                     key={s}
                     title={available ? `${s} — осталось ${remaining}` : `${s} — недоступен`}
-                    className={`relative py-3 text-xs border ${size === s && available ? 'bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-35 line-through bg-black/5'}`}
+                    className={`relative py-3 text-xs border transition-transform active:scale-95 ${size === s && available ? 'bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-35 line-through bg-black/5'}`}
                   >
                     {s}
                   </button>
@@ -221,7 +233,10 @@ function ProductDetails({ product: p }: { product: Product }) {
               })}
             </div>
             {size && selectedVariantStock > 0 && (
-              <p className="text-sm text-amber-700 mt-3">
+              <p
+                key={`${color}-${size}-${selectedVariantStock}`}
+                className="text-sm text-amber-700 mt-3 stock-count-change"
+              >
                 {language === 'en'
                   ? `Only ${selectedVariantStock} left: ${color} / ${size}`
                   : `Осталось ${selectedVariantStock} шт.: ${color} / ${size}`}

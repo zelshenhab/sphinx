@@ -1,8 +1,8 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { ProductGrid, useCatalog } from '@/features/catalog';
+import { ProductGrid, ProductGridSkeleton, useCatalog } from '@/features/catalog';
 export default function Shop() {
-  const { categories, products } = useCatalog();
+  const { categories, products, loading } = useCatalog();
   const [cat, setCat] = useState('all');
   const [sort, setSort] = useState('new');
   const list = useMemo(
@@ -47,7 +47,7 @@ export default function Shop() {
           <option value="desc">Цена: по убыванию</option>
         </select>
       </div>
-      <ProductGrid products={list} />
+      {loading ? <ProductGridSkeleton /> : <ProductGrid products={list} />}
     </main>
   );
 }

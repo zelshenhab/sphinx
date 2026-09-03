@@ -107,6 +107,96 @@ button {
   opacity: 1;
   transform: translate3d(0, 0, 0);
 }
+.page-enter {
+  animation: page-enter 0.38s ease-out both;
+}
+.hero-image {
+  animation: hero-zoom 9s ease-out both;
+}
+.hero-wordmark {
+  animation: hero-wordmark-in 1.1s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.product-card {
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+.cart-bump {
+  animation: cart-bump 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.stock-count-change {
+  animation: stock-count-change 0.35s ease-out both;
+}
+.category-unavailable-image {
+  animation: unavailable-drift 8s ease-in-out infinite alternate;
+}
+.skeleton-shimmer {
+  background: linear-gradient(100deg, #eee8dd 30%, #faf8f3 48%, #eee8dd 66%);
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 1.35s linear infinite;
+}
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hero-zoom {
+  from {
+    transform: scale(1.06);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes hero-wordmark-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.2em;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    letter-spacing: 0.08em;
+    transform: none;
+  }
+}
+@keyframes cart-bump {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.22) rotate(-6deg);
+  }
+}
+@keyframes stock-count-change {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes unavailable-drift {
+  from {
+    transform: scale(1.1);
+  }
+  to {
+    transform: scale(1.18);
+  }
+}
+@keyframes skeleton-shimmer {
+  to {
+    background-position-x: -220%;
+  }
+}
 main article img {
   will-change: transform;
 }
@@ -159,7 +249,7 @@ main > section:not(:first-child) {
   overflow: hidden;
   background: #f8f5ef;
   color: #b59a70;
-  animation: splash-screen-life 3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: splash-screen-life 2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .splash-pattern {
   position: absolute;
@@ -265,7 +355,7 @@ main > section:not(:first-child) {
 }
 @media (prefers-reduced-motion: reduce) {
   .splash-screen {
-    animation: splash-screen-life 3s ease both;
+    animation: splash-screen-life 2s ease both;
   }
   .splash-pattern,
   .splash-content,

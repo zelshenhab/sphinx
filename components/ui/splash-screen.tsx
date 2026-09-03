@@ -11,7 +11,7 @@ export function SplashScreen() {
     const timer = window.setTimeout(() => {
       setVisible(false);
       document.body.style.overflow = previousOverflow;
-    }, 3000);
+    }, 2000);
 
     return () => {
       window.clearTimeout(timer);
@@ -33,7 +33,12 @@ export function SplashScreen() {
           aria-hidden="true"
         >
           <circle cx="45" cy="25" r="17" stroke="currentColor" strokeWidth="3" />
-          <path d="M45 42V94M23 59H67M45 94C29 86 27 72 31 62M45 94C61 86 63 72 59 62" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          <path
+            d="M45 42V94M23 59H67M45 94C29 86 27 72 31 62M45 94C61 86 63 72 59 62"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
         </svg>
         <div className="splash-wordmark">SPHINX</div>
         <div className="splash-line" aria-hidden="true" />

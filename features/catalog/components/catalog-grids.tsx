@@ -1,8 +1,9 @@
 'use client';
-import { ProductGrid } from './product-card';
+import { ProductGrid, ProductGridSkeleton } from './product-card';
 import { useCatalog } from '../catalog-provider';
 export function FeaturedProductGrid({ limit = 8 }: { limit?: number }) {
-  const { categories, products } = useCatalog();
+  const { categories, products, loading } = useCatalog();
+  if (loading) return <ProductGridSkeleton count={limit} />;
   return (
     <ProductGrid
       products={products
@@ -16,6 +17,7 @@ export function FeaturedProductGrid({ limit = 8 }: { limit?: number }) {
   );
 }
 export function CategoryProductGrid({ category }: { category: string }) {
-  const { products } = useCatalog();
+  const { products, loading } = useCatalog();
+  if (loading) return <ProductGridSkeleton />;
   return <ProductGrid products={products.filter((product) => product.category === category)} />;
 }

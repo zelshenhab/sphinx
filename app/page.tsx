@@ -12,7 +12,13 @@ export default function Home() {
     <main>
       <section className="min-h-[78vh] bg-sand relative overflow-hidden flex items-end">
         {banner?.image && (
-          <Image src={banner.image} alt={banner.title} fill priority className="object-cover" />
+          <Image
+            src={banner.image}
+            alt={banner.title}
+            fill
+            priority
+            className="object-cover hero-image"
+          />
         )}
         <div className="absolute right-0 top-0 hidden md:grid w-1/2 h-full place-items-center border-l border-brown/10 bg-ivory/45">
           <BrandWordmark className="px-8" />
@@ -20,7 +26,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-sand via-sand/85 to-transparent" />
         <div className="container-x relative w-full pb-20 md:pb-28">
           <p className="eyebrow mb-6">{banner?.subtitle || 'The Guardian · 2026'}</p>
-          <h1 className="display text-6xl md:text-8xl tracking-[.08em]">
+          <h1 className="display text-6xl md:text-8xl tracking-[.08em] hero-wordmark">
             {banner?.title || 'SPHINX'}
           </h1>
           <p className="text-xl md:text-3xl display mt-5 max-w-lg">
@@ -123,7 +129,7 @@ function CategoryCard({
           alt={category.name}
           fill
           onError={() => setImageFailed(true)}
-          className={`object-cover transition duration-700 ${available ? 'group-hover:scale-105' : 'scale-110 blur-xl brightness-[.45]'}`}
+          className={`object-cover transition duration-700 ${available ? 'group-hover:scale-105' : 'category-unavailable-image scale-110 blur-xl brightness-[.45]'}`}
         />
       )}
       {available ? (

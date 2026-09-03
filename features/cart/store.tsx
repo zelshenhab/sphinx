@@ -144,7 +144,11 @@ export function Header() {
             <a href={`https://t.me/${telegram}`}>
               <Send size={17} />
             </a>
-            <button onClick={() => setOpen(true)} className="relative">
+            <button
+              key={count}
+              onClick={() => setOpen(true)}
+              className={`relative ${count > 0 ? 'cart-bump' : ''}`}
+            >
               <ShoppingBag size={20} />
               {count > 0 && (
                 <i className="absolute -top-2 -right-2 bg-gold text-white rounded-full not-italic text-[9px] w-4 h-4 grid place-items-center">

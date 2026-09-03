@@ -3,6 +3,7 @@ export const storageKeys = {
   language: 'sphinx-language',
   products: 'sphinx-products',
   settings: 'sphinx-settings',
+  catalog: 'sphinx-catalog-cache-v1',
 } as const;
 
 export const clientStorage = {

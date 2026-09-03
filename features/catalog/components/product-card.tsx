@@ -14,13 +14,19 @@ const storefrontColors = [
 
 export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
-  const availableVariant = product.colors.flatMap((color) =>
-    product.sizes.map((size) => ({
-      color,
-      size,
-      stock: product.variantStock?.[`${color}::${size}`] ?? product.sizeStock?.[size] ?? product.stockQuantity ?? 99,
-    })),
-  ).find((variant) => variant.stock > 0);
+  const availableVariant = product.colors
+    .flatMap((color) =>
+      product.sizes.map((size) => ({
+        color,
+        size,
+        stock:
+          product.variantStock?.[`${color}::${size}`] ??
+          product.sizeStock?.[size] ??
+          product.stockQuantity ??
+          99,
+      })),
+    )
+    .find((variant) => variant.stock > 0);
   const totalStock = product.variantStock
     ? Object.values(product.variantStock).reduce((total, stock) => total + stock, 0)
     : product.stockQuantity;
@@ -29,15 +35,14 @@ export function ProductCard({ product }: { product: Product }) {
   );
   const quickAddColor = availableVariant?.color ?? galleryColor ?? product.colors[0];
   const quickAddSize = availableVariant?.size ?? product.sizes[0];
-  const lowStock =
-    totalStock !== undefined && totalStock > 0 && totalStock <= 10;
+  const lowStock = totalStock !== undefined && totalStock > 0 && totalStock <= 10;
   const availableSwatches = storefrontColors.filter((swatch) =>
     product.colors.some((color) =>
       swatch.aliases.some((alias) => alias === color.trim().toLowerCase()),
     ),
   );
   return (
-    <article className="group">
+    <article className="group product-card">
       <Link
         href={`/product/${product.slug}`}
         className="relative block bg-sand overflow-hidden aspect-[4/5]"
@@ -101,6 +106,22 @@ export function ProductGrid({ products }: { products: Product[] }) {
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-7">
       {products.map((p) => (
         <ProductCard key={p.id} product={p} />
+      ))}
+    </div>
+  );
+}
+export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
+  return (
+    <div
+      className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-7"
+      aria-label="Loading products"
+    >
+      {Array.from({ length: count }, (_, index) => (
+        <div key={index} aria-hidden="true">
+          <div className="aspect-[4/5] skeleton-shimmer" />
+          <div className="h-3 w-3/4 mt-4 skeleton-shimmer" />
+          <div className="h-3 w-1/3 mt-3 skeleton-shimmer" />
+        </div>
       ))}
     </div>
   );
