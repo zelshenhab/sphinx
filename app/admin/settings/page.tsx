@@ -9,7 +9,7 @@ const defaults: Record<string, string> = {
   brand: 'SPHINX',
   tagline: 'THE GUARDIAN',
   telegram: TELEGRAM_USERNAME,
-  instagram: 'https://instagram.com/sphinx.wear',
+  instagram: 'https://instagram.com/sphinx.store',
   vk: 'https://vk.com/sphinx',
   announcement: 'Бесплатная доставка от 7 000 ₽',
   currency: 'RUB ₽',

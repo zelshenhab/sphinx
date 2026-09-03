@@ -3,7 +3,7 @@ import { TELEGRAM_USERNAME } from '@/config/site';
 export default function Contact() {
   const contacts = [
     ['Telegram', `@${TELEGRAM_USERNAME}`, `https://t.me/${TELEGRAM_USERNAME}`],
-    ['Instagram', '@sphinx.wear', '#'],
+    ['Instagram', '@sphinx.store', 'https://instagram.com/sphinx.store'],
     ['VK', 'SPHINX Store', '#'],
   ];
   return <main className="container-x py-20 min-h-[60vh]">
