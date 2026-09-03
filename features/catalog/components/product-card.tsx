@@ -8,7 +8,7 @@ import { useCart } from '@/features/cart';
 const storefrontColors = [
   { label: 'Black', aliases: ['black', 'чёрный', 'черный'], value: '#1d1d1b' },
   { label: 'White', aliases: ['white', 'белый'], value: '#ffffff' },
-  { label: 'Beige', aliases: ['beige', 'sand', 'бежевый'], value: '#c8ad82' },
+  { label: 'Sand', aliases: ['beige', 'sand', 'бежевый'], value: '#b18a55' },
   { label: 'Olive', aliases: ['olive', 'khaki', 'оливковый', 'хаки'], value: '#596044' },
 ] as const;
 

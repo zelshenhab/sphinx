@@ -11,7 +11,7 @@ import {
   useCatalog,
 } from '@/features/catalog';
 import { Product } from '@/types';
-import { formatPrice } from '@/config/site';
+import { formatPrice, getColorSwatch } from '@/config/site';
 import { clientStorage, storageKeys } from '@/core/storage/client-storage';
 import { useNotification } from '@/features/notifications';
 const blank = {
@@ -381,7 +381,7 @@ export default function Products() {
                       />
                       <span
                         className="w-4 h-4 rounded-full border border-black/20"
-                        style={{ backgroundColor: color.toLowerCase() }}
+                        style={{ backgroundColor: getColorSwatch(color) }}
                       />
                       {color}
                     </label>

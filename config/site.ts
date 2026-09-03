@@ -17,6 +17,26 @@ export const siteConfig = {
 
 export const TELEGRAM_USERNAME = siteConfig.telegramUsername;
 
+const colorSwatches: Record<string, string> = {
+  black: '#1d1d1b',
+  'чёрный': '#1d1d1b',
+  'черный': '#1d1d1b',
+  white: '#ffffff',
+  'белый': '#ffffff',
+  sand: '#b18a55',
+  beige: '#b18a55',
+  'бежевый': '#b18a55',
+  olive: '#596044',
+  khaki: '#596044',
+  'оливковый': '#596044',
+  'хаки': '#596044',
+};
+
+export function getColorSwatch(color: string) {
+  const normalizedColor = color.trim().toLowerCase();
+  return colorSwatches[normalizedColor] ?? normalizedColor;
+}
+
 export function formatPrice(value: number) {
   return `${new Intl.NumberFormat(siteConfig.locale).format(value)} ₽`;
 }

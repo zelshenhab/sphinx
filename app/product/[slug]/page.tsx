@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-react';
 import { ProductGrid, useCatalog } from '@/features/catalog';
-import { formatPrice, TELEGRAM_USERNAME } from '@/config/site';
+import { formatPrice, getColorSwatch, TELEGRAM_USERNAME } from '@/config/site';
 import { useCart } from '@/features/cart';
 import type { Product } from '@/types';
 import { useLanguage } from '@/features/i18n';
@@ -200,8 +200,8 @@ function ProductDetails({ product: p }: { product: Product }) {
                     className={`relative flex items-center gap-2 px-4 py-2 text-xs border active:scale-95 ${color === c && available ? 'border-ink bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-40 line-through bg-black/5'}`}
                   >
                     <span
-                      className="w-3.5 h-3.5 rounded-full border border-black/20"
-                      style={{ backgroundColor: c.toLowerCase() }}
+                      className="w-3.5 h-3.5 rounded-full border border-black/40 shadow-sm"
+                      style={{ backgroundColor: getColorSwatch(c) }}
                     />
                     {c}
                   </button>
