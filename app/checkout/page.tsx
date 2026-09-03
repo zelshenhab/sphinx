@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { toPng } from 'html-to-image';
-import { useCart } from '@/features/cart';
+import { getVariantImage, useCart } from '@/features/cart';
 import { formatPrice, TELEGRAM_USERNAME } from '@/config/site';
 import { createOrder } from '@/core/supabase/store';
 import { useNotification } from '@/features/notifications';
@@ -146,7 +146,7 @@ export default function Checkout() {
             {items.map((x, i) => (
               <div key={i} className="flex gap-4 border-t py-4">
                 <Image
-                  src={x.product.images[0]}
+                  src={getVariantImage(x.product, x.color)}
                   alt=""
                   width={70}
                   height={85}

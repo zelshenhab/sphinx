@@ -698,6 +698,7 @@ export default function Products() {
                         <button
                           className="text-red-700"
                           onClick={async () => {
+                            if (!window.confirm(`Удалить товар «${p.name}»?`)) return;
                             try {
                               await deleteProduct(p.id);
                               await refresh();

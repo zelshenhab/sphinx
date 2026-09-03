@@ -16,6 +16,7 @@ type CartCtx = {
   remove: (i: number) => void;
   clear: () => void;
   change: (i: number, d: number) => void;
+  updateVariant: (i: number, color: string, size: string) => void;
   open: boolean;
   setOpen: (v: boolean) => void;
   count: number;
@@ -80,6 +81,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setItems((x) => x.filter((_, n) => n !== i));
     notify('cart_removed', 'info');
   };
+  const updateVariant = (i: number, color: string, size: string) => {
+    setItems((current) =>
+      current.map((item, index) => {
+        if (index !== i) return item;
+        const available = stockForVariant(item.product, color, size);
+        if (available < 1) return item;
+        return { ...item, color, size, quantity: Math.min(item.quantity, available) };
+      }),
+    );
+  };
   const clear = () => setItems([]);
   return (
     <C.Provider
@@ -89,6 +100,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         remove,
         clear,
         change,
+        updateVariant,
         open,
         setOpen,
         count: items.reduce((a, b) => a + b.quantity, 0),
@@ -197,7 +209,7 @@ export function Footer() {
   );
 }
 function CartDrawer() {
-  const { items, open, setOpen, change, remove, total } = useCart();
+  const { items, open, setOpen, change, updateVariant, remove, total } = useCart();
   return (
     <div className={`fixed inset-0 z-50 ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
       <div
@@ -218,7 +230,7 @@ function CartDrawer() {
           {items.map((x, i) => (
             <div key={i} className="flex gap-3 sm:gap-4">
               <Image
-                src={x.product.images[0]}
+                src={getVariantImage(x.product, x.color)}
                 alt=""
                 width={80}
                 height={100}
@@ -226,9 +238,63 @@ function CartDrawer() {
               />
               <div className="flex-1 text-sm">
                 <b>{x.product.name}</b>
-                <p className="text-muted my-2">
-                  {x.color} · {x.size}
-                </p>
+                <div className="grid grid-cols-2 gap-2 my-3">
+                  <label>
+                    <span className="block text-[9px] uppercase tracking-wider text-muted mb-1">
+                      Цвет
+                    </span>
+                    <select
+                      aria-label="Выбрать цвет"
+                      className="w-full border border-black/15 bg-transparent px-2 py-1.5 text-xs"
+                      value={x.color}
+                      onChange={(event) => {
+                        const nextColor = event.target.value;
+                        const nextSize =
+                          stockForVariant(x.product, nextColor, x.size) > 0
+                            ? x.size
+                            : (x.product.sizes.find(
+                                (candidate) => stockForVariant(x.product, nextColor, candidate) > 0,
+                              ) ?? x.size);
+                        updateVariant(i, nextColor, nextSize);
+                      }}
+                    >
+                      {x.product.colors.map((color) => (
+                        <option
+                          key={color}
+                          value={color}
+                          disabled={
+                            !x.product.sizes.some(
+                              (size) => stockForVariant(x.product, color, size) > 0,
+                            )
+                          }
+                        >
+                          {color}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span className="block text-[9px] uppercase tracking-wider text-muted mb-1">
+                      Размер
+                    </span>
+                    <select
+                      aria-label="Выбрать размер"
+                      className="w-full border border-black/15 bg-transparent px-2 py-1.5 text-xs"
+                      value={x.size}
+                      onChange={(event) => updateVariant(i, x.color, event.target.value)}
+                    >
+                      {x.product.sizes.map((size) => (
+                        <option
+                          key={size}
+                          value={size}
+                          disabled={stockForVariant(x.product, x.color, size) < 1}
+                        >
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
                 <div className="flex items-center gap-2 sm:gap-3">
                   <button
                     className="w-8 h-8 grid place-items-center border"
@@ -263,5 +329,15 @@ function CartDrawer() {
         </div>
       </aside>
     </div>
+  );
+}
+
+export function getVariantImage(product: Product, color: string) {
+  const galleryImage = product.colorImages?.[color]?.[0];
+  if (galleryImage) return galleryImage;
+  const normalizedColor = color.trim().toLowerCase();
+  return (
+    product.images.find((image) => image.toLowerCase().includes(normalizedColor)) ??
+    product.images[0]
   );
 }

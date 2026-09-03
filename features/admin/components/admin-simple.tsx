@@ -90,6 +90,7 @@ export function AdminSimple({ title, fields }: AdminSimpleProps) {
 
   const remove = async (rowIndex: number) => {
     const row = rows[rowIndex];
+    if (!window.confirm('Удалить эту запись?')) return;
     try {
       if (row._id) await deleteAdminContent(title as ContentType, row._id);
       persist(rows.filter((_, index) => index !== rowIndex));
