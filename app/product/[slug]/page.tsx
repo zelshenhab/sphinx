@@ -153,9 +153,13 @@ function ProductDetails({ product: p }: { product: Product }) {
           <h1 className="display text-4xl mt-4">SPHINX — {p.name}</h1>
           <p className="text-xl mt-5">{formatPrice(p.price)}</p>
           {totalStock === 0 ? (
-            <p className="text-sm text-red-700 mt-3">Нет в наличии</p>
+            <p className="text-sm text-red-700 mt-3">
+              {language === 'en' ? 'Out of stock' : 'Нет в наличии'}
+            </p>
           ) : totalStock <= 10 ? (
-            <p className="text-sm text-amber-700 mt-3">Осталось всего {totalStock} шт.</p>
+            <p className="text-sm text-amber-700 mt-3">
+              {language === 'en' ? `Only ${totalStock} left` : `Осталось всего ${totalStock} шт.`}
+            </p>
           ) : null}
           <p className="text-muted leading-7 mt-7">{p.description}</p>
           <div className="mt-9">
@@ -206,7 +210,9 @@ function ProductDetails({ product: p }: { product: Product }) {
             </div>
             {size && selectedVariantStock > 0 && (
               <p className="text-sm text-amber-700 mt-3">
-                Осталось {selectedVariantStock} шт.: {color} / {size}
+                {language === 'en'
+                  ? `Only ${selectedVariantStock} left: ${color} / ${size}`
+                  : `Осталось ${selectedVariantStock} шт.: ${color} / ${size}`}
               </p>
             )}
             <p className="text-[11px] text-muted mt-2">Зачёркнутые размеры сейчас недоступны</p>
