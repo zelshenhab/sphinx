@@ -94,12 +94,26 @@ export async function listProducts() {
         row.value as Record<string, number>,
       ]),
   );
-  return (data as ProductRow[]).map((row) => ({
-    ...rowToProduct(row),
-    colorImages: media.get(row.id) ?? {},
-    sizeStock: sizeStock.get(row.id) ?? undefined,
-    stockQuantity: stock.get(row.id) ?? 20,
-  }));
+  const variantStock = new Map(
+    (mediaRows ?? [])
+      .filter((row) => row.key.startsWith('product_variant_stock:'))
+      .map((row) => [
+        row.key.replace('product_variant_stock:', ''),
+        row.value as Record<string, number>,
+      ]),
+  );
+  return (data as ProductRow[]).map((row) => {
+    const variants = variantStock.get(row.id);
+    return {
+      ...rowToProduct(row),
+      colorImages: media.get(row.id) ?? {},
+      sizeStock: sizeStock.get(row.id) ?? undefined,
+      variantStock: variants,
+      stockQuantity: variants
+        ? Object.values(variants).reduce((total, quantity) => total + quantity, 0)
+        : (stock.get(row.id) ?? 20),
+    };
+  });
 }
 export async function listCategories(): Promise<Category[]> {
   const { data, error } = await createClient()
@@ -160,6 +174,7 @@ export async function createProduct(product: Product) {
     ...rowToProduct(data as ProductRow),
     colorImages: product.colorImages ?? {},
     sizeStock: product.sizeStock ?? {},
+    variantStock: product.variantStock ?? {},
     stockQuantity: product.stockQuantity ?? 20,
   };
   await saveProductMetadata(supabase, created);
@@ -179,6 +194,7 @@ export async function updateProduct(product: Product) {
     ...rowToProduct(data as ProductRow),
     colorImages: product.colorImages ?? {},
     sizeStock: product.sizeStock ?? {},
+    variantStock: product.variantStock ?? {},
     stockQuantity: product.stockQuantity ?? 20,
   };
 }
@@ -193,6 +209,7 @@ export async function deleteProduct(id: string) {
       `product_color_images:${id}`,
       `product_stock:${id}`,
       `product_size_stock:${id}`,
+      `product_variant_stock:${id}`,
     ]);
 }
 async function saveProductMetadata(supabase: ReturnType<typeof createClient>, product: Product) {
@@ -200,6 +217,7 @@ async function saveProductMetadata(supabase: ReturnType<typeof createClient>, pr
     { key: `product_color_images:${product.id}`, value: product.colorImages ?? {} },
     { key: `product_stock:${product.id}`, value: product.stockQuantity ?? 20 },
     { key: `product_size_stock:${product.id}`, value: product.sizeStock ?? {} },
+    { key: `product_variant_stock:${product.id}`, value: product.variantStock ?? {} },
   ]);
   if (error) throw error;
 }

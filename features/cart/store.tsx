@@ -24,6 +24,8 @@ type CartCtx = {
 const C = createContext<CartCtx | null>(null);
 const stockForSize = (product: Product, size: string) =>
   product.sizeStock?.[size] ?? product.stockQuantity ?? 99;
+const stockForVariant = (product: Product, color: string, size: string) =>
+  product.variantStock?.[`${color}::${size}`] ?? stockForSize(product, size);
 export const useCart = () => {
   const c = useContext(C);
   if (!c) throw Error('Cart');
@@ -49,7 +51,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const i = x.findIndex(
         (v) => v.product.id === product.id && v.color === color && v.size === size,
       );
-      const available = stockForSize(product, size);
+      const available = stockForVariant(product, color, size);
       const safeQuantity = Math.min(quantity, available);
       if (safeQuantity < 1) return x;
       if (i < 0) return [...x, { product, color, size, quantity: safeQuantity }];
@@ -68,7 +70,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         n === i
           ? {
               ...v,
-              quantity: Math.min(stockForSize(v.product, v.size), Math.max(1, v.quantity + d)),
+              quantity: Math.min(
+                stockForVariant(v.product, v.color, v.size),
+                Math.max(1, v.quantity + d),
+              ),
             }
           : v,
       ),

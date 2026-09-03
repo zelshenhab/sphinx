@@ -11,7 +11,20 @@ export interface Order {
   id: string;
   databaseId?: string;
   customer: string;
+  phone: string;
+  telegram?: string;
+  city: string;
+  comment?: string;
   items: number;
+  lines: Array<{
+    id: string;
+    productName: string;
+    image: string;
+    color: string;
+    size: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
   total: number;
   date: string;
   status: string;

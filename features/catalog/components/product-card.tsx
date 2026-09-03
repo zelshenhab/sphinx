@@ -14,12 +14,23 @@ const storefrontColors = [
 
 export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
+  const availableVariant = product.colors.flatMap((color) =>
+    product.sizes.map((size) => ({
+      color,
+      size,
+      stock: product.variantStock?.[`${color}::${size}`] ?? product.sizeStock?.[size] ?? product.stockQuantity ?? 99,
+    })),
+  ).find((variant) => variant.stock > 0);
+  const totalStock = product.variantStock
+    ? Object.values(product.variantStock).reduce((total, stock) => total + stock, 0)
+    : product.stockQuantity;
   const galleryColor = product.colors.find(
     (color) => (product.colorImages?.[color]?.length ?? 0) > 0,
   );
-  const quickAddColor = galleryColor ?? product.colors[0];
+  const quickAddColor = availableVariant?.color ?? galleryColor ?? product.colors[0];
+  const quickAddSize = availableVariant?.size ?? product.sizes[0];
   const lowStock =
-    product.stockQuantity !== undefined && product.stockQuantity > 0 && product.stockQuantity <= 10;
+    totalStock !== undefined && totalStock > 0 && totalStock <= 10;
   const availableSwatches = storefrontColors.filter((swatch) =>
     product.colors.some((color) =>
       swatch.aliases.some((alias) => alias === color.trim().toLowerCase()),
@@ -44,10 +55,10 @@ export function ProductCard({ product }: { product: Product }) {
         )}
         {lowStock && (
           <span className="absolute bottom-3 left-3 bg-ink text-white px-3 py-1.5 text-[9px] tracking-wider">
-            Осталось {product.stockQuantity} шт.
+            Осталось {totalStock} шт.
           </span>
         )}
-        {product.stockQuantity === 0 && (
+        {totalStock === 0 && (
           <span className="absolute inset-x-0 bottom-0 bg-black/70 text-white text-center py-2 text-[10px] tracking-widest">
             НЕТ В НАЛИЧИИ
           </span>
@@ -63,8 +74,8 @@ export function ProductCard({ product }: { product: Product }) {
             {product.oldPrice && <s className="text-muted ml-2">{formatPrice(product.oldPrice)}</s>}
           </p>
           <button
-            disabled={product.stockQuantity === 0}
-            onClick={() => add(product, quickAddColor, product.sizes[0])}
+            disabled={totalStock === 0 || !quickAddSize}
+            onClick={() => add(product, quickAddColor, quickAddSize)}
             className="text-[10px] uppercase tracking-wider border-b border-black disabled:opacity-35 disabled:cursor-not-allowed"
           >
             Быстро добавить

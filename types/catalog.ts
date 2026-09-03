@@ -18,6 +18,7 @@ export interface Product {
   images: string[];
   colorImages?: Record<string, string[]>;
   sizeStock?: Record<string, number>;
+  variantStock?: Record<string, number>;
   stockQuantity?: number;
   featured: boolean;
   isNew?: boolean;

@@ -2,7 +2,7 @@
 import { use, useState } from 'react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-react';
 import { ProductGrid, useCatalog } from '@/features/catalog';
 import { formatPrice, TELEGRAM_USERNAME } from '@/config/site';
 import { useCart } from '@/features/cart';
@@ -23,37 +23,44 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   );
 }
 function ProductDetails({ product: p }: { product: Product }) {
-  const stockForSize = (candidate: string) =>
-    p.sizeStock?.[candidate] ?? (p.sizes.includes(candidate) ? (p.stockQuantity ?? 99) : 0);
-  const totalStock = p.sizeStock
-    ? Object.values(p.sizeStock).reduce((total, stock) => total + stock, 0)
+  const stockForVariant = (candidateColor: string, candidateSize: string) =>
+    p.variantStock?.[`${candidateColor}::${candidateSize}`] ??
+    p.sizeStock?.[candidateSize] ??
+    (p.sizes.includes(candidateSize) ? (p.stockQuantity ?? 99) : 0);
+  const totalStock = p.variantStock
+    ? Object.values(p.variantStock).reduce((total, stock) => total + stock, 0)
+    : p.sizeStock
+      ? Object.values(p.sizeStock).reduce((total, stock) => total + stock, 0)
     : (p.stockQuantity ?? 99);
   const hasColorGalleries = Object.values(p.colorImages ?? {}).some((images) => images.length > 0);
   const isColorAvailable = (candidate: string) =>
     p.colors.includes(candidate) &&
-    (!hasColorGalleries || (p.colorImages?.[candidate]?.length ?? 0) > 0);
+    (!hasColorGalleries || (p.colorImages?.[candidate]?.length ?? 0) > 0) &&
+    p.sizes.some((candidateSize) => stockForVariant(candidate, candidateSize) > 0);
   const defaultColor = p.colors.find(isColorAvailable) ?? p.colors.find(Boolean) ?? '';
   const [color, setColor] = useState(defaultColor);
-  const [size, setSize] = useState(p.sizes.find((candidate) => stockForSize(candidate) > 0) ?? '');
+  const [size, setSize] = useState(
+    p.sizes.find((candidate) => stockForVariant(defaultColor, candidate) > 0) ?? '',
+  );
   const [q, setQ] = useState(1);
   const [image, setImage] = useState(p.colorImages?.[defaultColor]?.[0] || p.images[0]);
+  const [zoomed, setZoomed] = useState(false);
   const { add } = useCart();
   const { categories, products, settings } = useCatalog();
   const { language } = useLanguage();
-  const selectedSizeStock = size ? stockForSize(size) : 0;
-  const relatedProducts = [
-    ...products.filter(
-      (product) =>
-        product.id !== p.id && product.category === p.category && product.stockQuantity !== 0,
-    ),
-    ...products.filter(
-      (product) =>
-        product.id !== p.id &&
-        product.category !== p.category &&
-        product.stockQuantity !== 0 &&
+  const selectedVariantStock = size ? stockForVariant(color, size) : 0;
+  const relatedProducts = products
+    .filter(
+      (product) => product.id !== p.id && product.stockQuantity !== 0 &&
         categories.some((category) => category.slug === product.category && category.active),
-    ),
-  ].slice(0, 4);
+    )
+    .sort((a, b) => {
+      const score = (product: Product) =>
+        Number(product.category === p.category) * 10 + Number(product.type === p.type) * 4 +
+        product.colors.filter((candidate) => p.colors.includes(candidate)).length;
+      return score(b) - score(a);
+    })
+    .slice(0, 4);
   const allColors = Array.from(
     new Set([
       ...(settings.colors || p.colors.join(','))
@@ -83,12 +90,15 @@ function ProductDetails({ product: p }: { product: Product }) {
   const selectColor = (nextColor: string) => {
     setColor(nextColor);
     setImage(p.colorImages?.[nextColor]?.[0] || p.images[0]);
+    const nextSize = p.sizes.find((candidate) => stockForVariant(nextColor, candidate) > 0) ?? '';
+    setSize(nextSize);
+    setQ(1);
   };
   return (
     <>
       <main className="container-x py-10 grid lg:grid-cols-2 gap-12 lg:gap-20">
         <div className="grid md:grid-cols-[96px_minmax(0,1fr)] gap-3 items-start">
-          <div className="relative aspect-[4/5] bg-sand overflow-hidden group/gallery md:col-start-2 md:row-start-1">
+          <div onClick={() => setZoomed(true)} className="relative aspect-[4/5] bg-sand overflow-hidden group/gallery md:col-start-2 md:row-start-1 cursor-zoom-in">
             <Image
               key={displayedImage}
               src={displayedImage}
@@ -102,7 +112,7 @@ function ProductDetails({ product: p }: { product: Product }) {
                 <button
                   type="button"
                   aria-label="Previous image"
-                  onClick={() => navigateImage(-1)}
+                  onClick={(event) => { event.stopPropagation(); navigateImage(-1); }}
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center bg-white/85 backdrop-blur opacity-100 md:opacity-0 md:group-hover/gallery:opacity-100 focus:opacity-100 hover:bg-white"
                 >
                   <ChevronLeft size={19} />
@@ -110,7 +120,7 @@ function ProductDetails({ product: p }: { product: Product }) {
                 <button
                   type="button"
                   aria-label="Next image"
-                  onClick={() => navigateImage(1)}
+                  onClick={(event) => { event.stopPropagation(); navigateImage(1); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center bg-white/85 backdrop-blur opacity-100 md:opacity-0 md:group-hover/gallery:opacity-100 focus:opacity-100 hover:bg-white"
                 >
                   <ChevronRight size={19} />
@@ -176,7 +186,7 @@ function ProductDetails({ product: p }: { product: Product }) {
             <b className="text-sm">Размер: {size}</b>
             <div className="grid grid-cols-6 gap-2 mt-3">
               {allSizes.map((s) => {
-                const remaining = stockForSize(s);
+                const remaining = stockForVariant(color, s);
                 const available = p.sizes.includes(s) && remaining > 0;
                 return (
                   <button
@@ -194,12 +204,20 @@ function ProductDetails({ product: p }: { product: Product }) {
                 );
               })}
             </div>
-            {size && selectedSizeStock > 0 && (
+            {size && selectedVariantStock > 0 && (
               <p className="text-sm text-amber-700 mt-3">
-                Осталось {selectedSizeStock} шт. размера {size}
+                Осталось {selectedVariantStock} шт.: {color} / {size}
               </p>
             )}
             <p className="text-[11px] text-muted mt-2">Зачёркнутые размеры сейчас недоступны</p>
+            <details className="mt-4 border border-black/10 bg-white p-4">
+              <summary className="cursor-pointer text-sm font-medium">Таблица размеров</summary>
+              <div className="overflow-x-auto mt-4">
+                <table className="w-full text-xs text-center min-w-[420px]"><thead><tr><th className="p-2 text-left">Размер</th><th>Грудь</th><th>Длина</th><th>Рукав</th></tr></thead><tbody>
+                  {[['XS','50','66','20'],['S','53','68','21'],['M','56','71','22'],['L','59','73','23'],['XL','62','75','24'],['XXL','65','77','25']].map((row) => <tr className="border-t" key={row[0]}>{row.map((cell, index) => <td className={`p-2 ${index === 0 ? 'text-left font-medium' : ''}`} key={cell}>{cell}{index > 0 ? ' см' : ''}</td>)}</tr>)}
+                </tbody></table>
+              </div>
+            </details>
           </div>
           <div className="flex gap-3 mt-7">
             <div className="flex border border-black/20 items-center gap-4 px-4">
@@ -207,16 +225,16 @@ function ProductDetails({ product: p }: { product: Product }) {
                 <Minus size={14} />
               </button>
               {q}
-              <button onClick={() => setQ(Math.min(q + 1, selectedSizeStock))}>
+              <button onClick={() => setQ(Math.min(q + 1, selectedVariantStock))}>
                 <Plus size={14} />
               </button>
             </div>
             <button
-              disabled={totalStock === 0 || selectedSizeStock === 0}
+              disabled={totalStock === 0 || selectedVariantStock === 0}
               onClick={() => add(p, color, size, q)}
               className="btn btn-dark flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {totalStock === 0 || selectedSizeStock === 0
+              {totalStock === 0 || selectedVariantStock === 0
                 ? 'Нет в наличии'
                 : 'Добавить в корзину'}
             </button>
@@ -235,9 +253,17 @@ function ProductDetails({ product: p }: { product: Product }) {
           </div>
         </div>
       </main>
+      {zoomed && (
+        <div className="fixed inset-0 z-[70] bg-black/90 p-4 md:p-10 grid place-items-center" onClick={() => setZoomed(false)}>
+          <button aria-label="Close image" className="absolute top-5 right-5 text-white p-2" onClick={() => setZoomed(false)}><X /></button>
+          <div className="relative w-full h-full max-w-5xl" onClick={(event) => event.stopPropagation()}>
+            <Image src={displayedImage} alt={p.name} fill className="object-contain" sizes="100vw" />
+          </div>
+        </div>
+      )}
       {relatedProducts.length > 0 && (
         <section className="container-x pt-10 pb-24 border-t border-black/10">
-          <p className="eyebrow text-brown">Recommended</p>
+          <p className="eyebrow text-brown">Рекомендуем</p>
           <h2 className="display text-4xl mt-3 mb-10">
             {language === 'en' ? 'You may also like' : 'Вам также может понравиться'}
           </h2>

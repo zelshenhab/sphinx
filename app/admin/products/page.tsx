@@ -45,6 +45,24 @@ function distributeStock(sizes: string[], total = 20) {
     ]),
   );
 }
+const variantKey = (color: string, size: string) => `${color}::${size}`;
+function distributeVariantStock(
+  colors: string[],
+  sizes: string[],
+  total = 20,
+  sizeTotals?: Record<string, number>,
+) {
+  const totals = sizeTotals ?? distributeStock(sizes, total);
+  return Object.fromEntries(
+    sizes.flatMap((size) => {
+      const sizeTotal = totals[size] ?? 0;
+      return colors.map((color, index) => [
+        variantKey(color, size),
+        Math.floor(sizeTotal / colors.length) + (index < sizeTotal % colors.length ? 1 : 0),
+      ]);
+    }),
+  );
+}
 export default function Products() {
   const { notify } = useNotification();
   const { categories, refresh, settings } = useCatalog();
@@ -55,8 +73,12 @@ export default function Products() {
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [colorImages, setColorImages] = useState<Record<string, string[]>>({});
-  const [sizeStock, setSizeStock] = useState<Record<string, number>>(
-    distributeStock(blank.sizes.split(',').map((size) => size.trim()), Number(blank.stock)),
+  const [variantStock, setVariantStock] = useState<Record<string, number>>(
+    distributeVariantStock(
+      blank.colors.split(',').map((color) => color.trim()),
+      blank.sizes.split(',').map((size) => size.trim()),
+      Number(blank.stock),
+    ),
   );
   const [galleryColor, setGalleryColor] = useState('Black');
   const [galleryUploading, setGalleryUploading] = useState(false);
@@ -91,12 +113,6 @@ export default function Products() {
       ? selectedSizes.filter((item) => item !== size)
       : [...selectedSizes, size];
     setForm({ ...form, sizes: next.join(', ') });
-    setSizeStock((current) => {
-      if (!selectedSizes.includes(size)) return { ...current, [size]: current[size] ?? 0 };
-      const copy = { ...current };
-      delete copy[size];
-      return copy;
-    });
   };
   const toggleColor = (color: string) => {
     const next = selectedColors.includes(color)
@@ -136,7 +152,22 @@ export default function Products() {
     }
     const existingProduct = editingId ? list.find((item) => item.id === editingId) : undefined;
     const normalizedSizeStock = Object.fromEntries(
-      selectedSizes.map((size) => [size, Math.max(0, Math.floor(Number(sizeStock[size]) || 0))]),
+      selectedSizes.map((size) => [
+        size,
+        selectedColors.reduce(
+          (total, color) =>
+            total + Math.max(0, Math.floor(Number(variantStock[variantKey(color, size)]) || 0)),
+          0,
+        ),
+      ]),
+    );
+    const normalizedVariantStock = Object.fromEntries(
+      selectedColors.flatMap((color) =>
+        selectedSizes.map((size) => [
+          variantKey(color, size),
+          Math.max(0, Math.floor(Number(variantStock[variantKey(color, size)]) || 0)),
+        ]),
+      ),
     );
     const totalStock = Object.values(normalizedSizeStock).reduce((total, stock) => total + stock, 0);
     const p: Product = {
@@ -147,6 +178,7 @@ export default function Products() {
       price: Number(form.price),
       oldPrice: form.oldPrice ? Number(form.oldPrice) : undefined,
       sizeStock: normalizedSizeStock,
+      variantStock: normalizedVariantStock,
       stockQuantity: totalStock,
       description: form.description || 'Новая модель SPHINX.',
       material: form.material,
@@ -188,7 +220,13 @@ export default function Products() {
     }
     setForm(blank);
     setColorImages({});
-    setSizeStock(distributeStock(blank.sizes.split(',').map((size) => size.trim()), 20));
+    setVariantStock(
+      distributeVariantStock(
+        blank.colors.split(',').map((color) => color.trim()),
+        blank.sizes.split(',').map((size) => size.trim()),
+        20,
+      ),
+    );
     setEditingId(null);
     setError('');
     setOpen(false);
@@ -250,7 +288,11 @@ export default function Products() {
                 .split(',')
                 .map((size) => size.trim())
                 .filter(Boolean);
-              setSizeStock(distributeStock(sizes, Number(blank.stock)));
+              const colors = (settings.colors || blank.colors)
+                .split(',')
+                .map((color) => color.trim())
+                .filter(Boolean);
+              setVariantStock(distributeVariantStock(colors, sizes, Number(blank.stock)));
               setGalleryColor((settings.colors || blank.colors).split(',')[0].trim());
             }
             setOpen(next);
@@ -425,26 +467,45 @@ export default function Products() {
               {!selectedSizes.length && (
                 <p className="text-xs text-red-700 mt-2">Выберите хотя бы один размер</p>
               )}
-              {selectedSizes.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-                  {selectedSizes.map((size) => (
-                    <label key={size} className="border border-black/10 bg-white p-3">
-                      <T>Stock for size {size}</T>
-                      <input
-                        className="field mt-2"
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={sizeStock[size] ?? 0}
-                        onChange={(event) =>
-                          setSizeStock((current) => ({
-                            ...current,
-                            [size]: Math.max(0, Number(event.target.value)),
-                          }))
-                        }
-                      />
-                    </label>
-                  ))}
+              {selectedSizes.length > 0 && selectedColors.length > 0 && (
+                <div className="mt-5 overflow-x-auto border border-black/10 bg-white p-4">
+                  <p className="text-sm font-medium mb-3">Stock by color and size</p>
+                  <table className="w-full text-xs min-w-[560px]">
+                    <thead>
+                      <tr>
+                        <th className="text-left p-2">Color</th>
+                        {selectedSizes.map((size) => <th key={size} className="p-2">{size}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedColors.map((color) => (
+                        <tr key={color} className="border-t">
+                          <th className="text-left p-2">{color}</th>
+                          {selectedSizes.map((size) => {
+                            const key = variantKey(color, size);
+                            return (
+                              <td key={key} className="p-2">
+                                <input
+                                  aria-label={`Stock for ${color} ${size}`}
+                                  className="field min-w-16 text-center"
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  value={variantStock[key] ?? 0}
+                                  onChange={(event) =>
+                                    setVariantStock((current) => ({
+                                      ...current,
+                                      [key]: Math.max(0, Number(event.target.value)),
+                                    }))
+                                  }
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -545,8 +606,14 @@ export default function Products() {
                   onClick={() => {
                     setEditingId(p.id);
                     setColorImages(p.colorImages ?? {});
-                    setSizeStock(
-                      p.sizeStock ?? distributeStock(p.sizes, p.stockQuantity ?? 20),
+                    setVariantStock(
+                      p.variantStock ??
+                        distributeVariantStock(
+                          p.colors,
+                          p.sizes,
+                          p.stockQuantity ?? 20,
+                          p.sizeStock,
+                        ),
                     );
                     setGalleryColor(p.colors[0] ?? 'Black');
                     setForm({

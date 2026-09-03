@@ -69,7 +69,7 @@ export default function Checkout() {
   };
   return (
     <main className="container-x py-16">
-      <p className="eyebrow text-brown">Telegram checkout</p>
+      <p className="eyebrow text-brown">Заказ через Telegram</p>
       <h1 className="display text-5xl mt-3">Оформление заказа</h1>
       <div className="grid lg:grid-cols-2 gap-12 mt-12">
         <section>
@@ -141,7 +141,7 @@ export default function Checkout() {
           <div ref={card} className="bg-white p-7 border border-black/10">
             <div className="flex justify-between mb-7">
               <b className="display text-2xl tracking-widest">SPHINX</b>
-              <span className="eyebrow">Order card</span>
+              <span className="eyebrow">Карточка заказа</span>
             </div>
             {items.map((x, i) => (
               <div key={i} className="flex gap-4 border-t py-4">

@@ -49,7 +49,7 @@ export default function Home() {
           if (!collectionProducts.length) return null;
           return (
             <section className="container-x pb-24" key={collection.id}>
-              <p className="eyebrow text-brown">Collection</p>
+              <p className="eyebrow text-brown">Коллекция</p>
               <h2 className="display text-4xl mt-3 mb-10">{collection.name}</h2>
               <ProductGrid products={collectionProducts} />
             </section>
@@ -58,7 +58,7 @@ export default function Home() {
       <section className="container-x py-24">
         <div className="flex justify-between items-end mb-10">
           <div>
-            <p className="eyebrow text-brown">Explore</p>
+            <p className="eyebrow text-brown">Обзор</p>
             <h2 className="display text-4xl mt-3">По категориям</h2>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default function Home() {
         </div>
       </section>
       <section className="container-x pb-24">
-        <p className="eyebrow text-brown">Selected pieces</p>
+        <p className="eyebrow text-brown">Избранные модели</p>
         <h2 className="display text-4xl mt-3 mb-10">Избранное</h2>
         <FeaturedProductGrid limit={8} />
       </section>
@@ -79,7 +79,7 @@ export default function Home() {
             <BrandWordmark light className="px-8" />
           </div>
           <div>
-            <p className="eyebrow text-gold">Our story</p>
+            <p className="eyebrow text-gold">Наша история</p>
             <h2 className="display text-5xl mt-5">
               Древние символы.
               <br />
@@ -96,7 +96,7 @@ export default function Home() {
         </div>
       </section>
       <section className="container-x py-24 text-center">
-        <p className="eyebrow text-brown">Direct contact</p>
+        <p className="eyebrow text-brown">Прямая связь</p>
         <h2 className="display text-4xl mt-4">Есть вопросы?</h2>
         <p className="text-muted mt-4">Напишите нам — поможем с размером и оформлением заказа.</p>
         <a className="btn btn-dark mt-7" href={`https://t.me/${TELEGRAM_USERNAME}`}>
@@ -134,7 +134,6 @@ function CategoryCard({
         <div className="absolute inset-0 grid place-items-center bg-black/25 text-center text-white p-5">
           <div>
             <h3 className="display text-3xl">{category.name}</h3>
-            <p className="eyebrow text-white/75 mt-4">Coming soon</p>
             <p className="display text-2xl mt-3">Скоро в продаже</p>
             <p className="text-xs text-white/70 mt-2">Сейчас недоступно</p>
           </div>

@@ -1,1 +1,17 @@
-import {BrandWordmark} from '@/components/ui/brand-wordmark';export default function About(){return <main><section className="container-x py-20 text-center"><p className="eyebrow text-brown">The Guardian</p><h1 className="display text-7xl tracking-[.15em] mt-5">SPHINX</h1><p className="display text-2xl mt-7">Прошлое не исчезает. Оно становится частью тебя.</p></section><section className="container-x grid md:grid-cols-2 gap-14 items-center pb-24"><div className="relative aspect-[4/5] bg-sand grid place-items-center border border-brown/10"><BrandWordmark className="px-8"/></div><div><p className="eyebrow text-brown">Our identity</p><h2 className="display text-4xl mt-4">Наследие в движении</h2><p className="text-muted leading-8 mt-7">SPHINX — бренд современной одежды, вдохновлённый культурой и наследием Египта. Мы переносим силу древних символов — лотоса, анкха и пирамид — в чистый язык современного streetwear.</p><p className="text-muted leading-8 mt-5">Без театральности. Без сувенирной эстетики. Только точная форма, качественные материалы и графика со смыслом.</p></div></section></main>}
+import { BrandWordmark } from '@/components/ui/brand-wordmark';
+
+export default function About() {
+  return <main>
+    <section className="container-x py-20 text-center">
+      <p className="eyebrow text-brown">The Guardian</p><h1 className="display text-7xl tracking-[.15em] mt-5">SPHINX</h1>
+      <p className="display text-2xl mt-7">Прошлое не исчезает. Оно становится частью тебя.</p>
+    </section>
+    <section className="container-x grid md:grid-cols-2 gap-14 items-center pb-24">
+      <div className="relative aspect-[4/5] bg-sand grid place-items-center border border-brown/10"><BrandWordmark className="px-8" /></div>
+      <div><p className="eyebrow text-brown">Наша идентичность</p><h2 className="display text-4xl mt-4">Наследие в движении</h2>
+        <p className="text-muted leading-8 mt-7">SPHINX — бренд современной одежды, вдохновлённый культурой и наследием Египта. Мы переносим силу древних символов — лотоса, анкха и пирамид — в чистый язык современного streetwear.</p>
+        <p className="text-muted leading-8 mt-5">Без театральности. Без сувенирной эстетики. Только точная форма, качественные материалы и графика со смыслом.</p>
+      </div>
+    </section>
+  </main>;
+}

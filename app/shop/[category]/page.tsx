@@ -27,7 +27,7 @@ export default function Category({ params }: { params: Promise<{ category: strin
   }
   return (
     <main className="container-x py-16">
-      <p className="eyebrow text-brown">Collection</p>
+      <p className="eyebrow text-brown">Коллекция</p>
       <h1 className="display text-5xl mt-3 mb-12">{c.name}</h1>
       <CategoryProductGrid category={category} />
     </main>
