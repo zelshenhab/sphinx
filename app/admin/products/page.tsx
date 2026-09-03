@@ -108,6 +108,24 @@ export default function Products() {
       ...selectedSizes,
     ]),
   );
+  const categoryGroups = [
+    ...categories.map((category) => ({
+      slug: category.slug,
+      name: category.name,
+      products: list.filter((product) => product.category === category.slug),
+    })),
+    ...Array.from(
+      new Set(
+        list
+          .map((product) => product.category)
+          .filter((slug) => !categories.some((category) => category.slug === slug)),
+      ),
+    ).map((slug) => ({
+      slug,
+      name: slug,
+      products: list.filter((product) => product.category === slug),
+    })),
+  ].filter((group) => group.products.length > 0);
   const toggleSize = (size: string) => {
     const next = selectedSizes.includes(size)
       ? selectedSizes.filter((item) => item !== size)
@@ -574,120 +592,136 @@ export default function Products() {
           </button>
         </form>
       )}
-      <table className="w-full text-sm text-left min-w-[800px]">
-        <thead className="text-xs text-muted">
-          <tr>
-            {['Image', 'Name', 'Category', 'Price', 'Old Price', 'Status', 'Stock', 'Actions'].map(
-              (x) => (
-                <th className="py-3" key={x}>
-                  {x}
-                </th>
-              ),
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((p, i) => (
-            <tr className="border-t" key={p.id}>
-              <td className="py-3">
-                <Image src={p.images[0]} alt="" width={46} height={56} />
-              </td>
-              <td>{p.name}</td>
-              <td>{p.category}</td>
-              <td>{formatPrice(p.price)}</td>
-              <td>{p.oldPrice ? formatPrice(p.oldPrice) : '—'}</td>
-              <td className="text-green-700">Active</td>
-              <td
-                className={
-                  p.stockQuantity === 0
-                    ? 'text-red-700'
-                    : p.stockQuantity !== undefined && p.stockQuantity <= 10
-                      ? 'text-amber-700'
-                      : 'text-green-700'
-                }
-              >
-                {p.stockQuantity ?? 20} pcs
-              </td>
-              <td className="space-x-3">
-                <button
-                  onClick={() => {
-                    setEditingId(p.id);
-                    setColorImages(p.colorImages ?? {});
-                    setVariantStock(
-                      p.variantStock ??
-                        distributeVariantStock(
-                          p.colors,
-                          p.sizes,
-                          p.stockQuantity ?? 20,
-                          p.sizeStock,
-                        ),
-                    );
-                    setGalleryColor(p.colors[0] ?? 'Black');
-                    setForm({
-                      name: p.name,
-                      slug: p.slug,
-                      category: p.category,
-                      price: String(p.price),
-                      oldPrice: p.oldPrice ? String(p.oldPrice) : '',
-                      stock: String(p.stockQuantity ?? 20),
-                      description: p.description,
-                      material: p.material,
-                      gsm: p.gsm || '',
-                      fit: p.fit,
-                      colors: p.colors.join(', '),
-                      sizes: p.sizes.join(', '),
-                      image: p.images[0] || blank.image,
-                      type: p.type,
-                      featured: p.featured,
-                      isNew: p.isNew ?? false,
-                      isSale: p.isSale ?? false,
-                    });
-                    setOpen(true);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={async () => {
-                    const copy = {
-                      ...p,
-                      id: Date.now().toString(),
-                      name: p.name + ' Copy',
-                      slug: `${p.slug}-copy-${Date.now()}`,
-                    };
-                    try {
-                      const remoteCopy = await createProduct(copy);
-                      save([...list, remoteCopy]);
-                      await refresh();
-                    } catch {
-                      save([...list, copy]);
-                    }
-                    notify('product_duplicated', 'success');
-                  }}
-                >
-                  Duplicate
-                </button>
-                <button
-                  className="text-red-700"
-                  onClick={async () => {
-                    try {
-                      await deleteProduct(p.id);
-                      await refresh();
-                    } catch (deleteError) {
-                      console.info('[SPHINX_PRODUCT_DELETE_LOCAL_ONLY]', deleteError);
-                    }
-                    save(list.filter((_, n) => n !== i));
-                    notify('product_deleted', 'info');
-                  }}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="space-y-8">
+        {categoryGroups.map((group) => (
+          <section key={group.slug} className="border border-black/10">
+            <div className="flex items-center justify-between bg-sand/60 px-4 py-3 border-b border-black/10">
+              <h3 className="display text-lg">{group.name}</h3>
+              <span className="text-xs text-muted">
+                {group.products.length} {group.products.length === 1 ? 'товар' : 'товаров'}
+              </span>
+            </div>
+            <div className="overflow-x-auto px-4">
+              <table className="w-full text-sm text-left min-w-[760px]">
+                <thead className="text-xs text-muted">
+                  <tr>
+                    {['Image', 'Name', 'Price', 'Old Price', 'Status', 'Stock', 'Actions'].map(
+                      (column) => (
+                        <th className="py-3" key={column}>
+                          {column}
+                        </th>
+                      ),
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.products.map((p) => (
+                    <tr className="border-t" key={p.id}>
+                      <td className="py-3">
+                        <Image src={p.images[0]} alt="" width={46} height={56} />
+                      </td>
+                      <td>{p.name}</td>
+                      <td>{formatPrice(p.price)}</td>
+                      <td>{p.oldPrice ? formatPrice(p.oldPrice) : '—'}</td>
+                      <td className="text-green-700">Active</td>
+                      <td
+                        className={
+                          p.stockQuantity === 0
+                            ? 'text-red-700'
+                            : p.stockQuantity !== undefined && p.stockQuantity <= 10
+                              ? 'text-amber-700'
+                              : 'text-green-700'
+                        }
+                      >
+                        {p.stockQuantity ?? 20} pcs
+                      </td>
+                      <td className="space-x-3">
+                        <button
+                          onClick={() => {
+                            setEditingId(p.id);
+                            setColorImages(p.colorImages ?? {});
+                            setVariantStock(
+                              p.variantStock ??
+                                distributeVariantStock(
+                                  p.colors,
+                                  p.sizes,
+                                  p.stockQuantity ?? 20,
+                                  p.sizeStock,
+                                ),
+                            );
+                            setGalleryColor(p.colors[0] ?? 'Black');
+                            setForm({
+                              name: p.name,
+                              slug: p.slug,
+                              category: p.category,
+                              price: String(p.price),
+                              oldPrice: p.oldPrice ? String(p.oldPrice) : '',
+                              stock: String(p.stockQuantity ?? 20),
+                              description: p.description,
+                              material: p.material,
+                              gsm: p.gsm || '',
+                              fit: p.fit,
+                              colors: p.colors.join(', '),
+                              sizes: p.sizes.join(', '),
+                              image: p.images[0] || blank.image,
+                              type: p.type,
+                              featured: p.featured,
+                              isNew: p.isNew ?? false,
+                              isSale: p.isSale ?? false,
+                            });
+                            setOpen(true);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const copy = {
+                              ...p,
+                              id: Date.now().toString(),
+                              name: p.name + ' Copy',
+                              slug: `${p.slug}-copy-${Date.now()}`,
+                            };
+                            try {
+                              const remoteCopy = await createProduct(copy);
+                              save([...list, remoteCopy]);
+                              await refresh();
+                            } catch {
+                              save([...list, copy]);
+                            }
+                            notify('product_duplicated', 'success');
+                          }}
+                        >
+                          Duplicate
+                        </button>
+                        <button
+                          className="text-red-700"
+                          onClick={async () => {
+                            try {
+                              await deleteProduct(p.id);
+                              await refresh();
+                            } catch (deleteError) {
+                              console.info('[SPHINX_PRODUCT_DELETE_LOCAL_ONLY]', deleteError);
+                            }
+                            save(list.filter((item) => item.id !== p.id));
+                            notify('product_deleted', 'info');
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ))}
+        {categoryGroups.length === 0 && (
+          <p className="py-10 text-center text-sm text-muted">Нет товаров</p>
+        )}
+      </div>
     </div>
   );
 }
