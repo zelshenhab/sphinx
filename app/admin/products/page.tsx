@@ -71,6 +71,7 @@ export default function Products() {
   const [form, setForm] = useState(blank);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [colorImages, setColorImages] = useState<Record<string, string[]>>({});
   const [variantStock, setVariantStock] = useState<Record<string, number>>(
@@ -82,6 +83,9 @@ export default function Products() {
   );
   const [galleryColor, setGalleryColor] = useState('Black');
   const [galleryUploading, setGalleryUploading] = useState(false);
+  const missingSeedProducts = seed.filter(
+    (originalProduct) => !list.some((product) => product.slug === originalProduct.slug),
+  );
   const selectedColors = form.colors
     .split(',')
     .map((color) => color.trim())
@@ -293,35 +297,70 @@ export default function Products() {
           <h2 className="display text-2xl">Товары</h2>
           <p className="text-xs text-muted mt-1">{list.length} товаров · сохранение в браузере</p>
         </div>
-        <button
-          onClick={() => {
-            const next = !open;
-            if (next)
-              setForm({
-                ...blank,
-                sizes: settings.sizes || blank.sizes,
-                colors: settings.colors || blank.colors,
-              });
-            if (next) {
-              setEditingId(null);
-              setColorImages({});
-              const sizes = (settings.sizes || blank.sizes)
-                .split(',')
-                .map((size) => size.trim())
-                .filter(Boolean);
-              const colors = (settings.colors || blank.colors)
-                .split(',')
-                .map((color) => color.trim())
-                .filter(Boolean);
-              setVariantStock(distributeVariantStock(colors, sizes, Number(blank.stock)));
-              setGalleryColor((settings.colors || blank.colors).split(',')[0].trim());
-            }
-            setOpen(next);
-          }}
-          className="btn btn-dark"
-        >
-          {open ? 'Закрыть' : 'Добавить товар'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {missingSeedProducts.length > 0 && (
+            <button
+              disabled={restoring}
+              onClick={async () => {
+                setRestoring(true);
+                try {
+                  const restored = await Promise.all(missingSeedProducts.map(createProduct));
+                  save([...restored, ...list]);
+                  await refresh();
+                  notify(
+                    {
+                      ru: 'Удалённые товары восстановлены',
+                      en: 'Deleted products restored',
+                    },
+                    'success',
+                  );
+                } catch (restoreError) {
+                  console.error('[SPHINX_PRODUCT_RESTORE_ERROR]', restoreError);
+                  notify(
+                    { ru: 'Не удалось восстановить товары', en: 'Could not restore products' },
+                    'error',
+                  );
+                } finally {
+                  setRestoring(false);
+                }
+              }}
+              className="btn border border-ink disabled:opacity-40"
+            >
+              {restoring
+                ? 'Восстановление...'
+                : `Восстановить удалённые (${missingSeedProducts.length})`}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              const next = !open;
+              if (next)
+                setForm({
+                  ...blank,
+                  sizes: settings.sizes || blank.sizes,
+                  colors: settings.colors || blank.colors,
+                });
+              if (next) {
+                setEditingId(null);
+                setColorImages({});
+                const sizes = (settings.sizes || blank.sizes)
+                  .split(',')
+                  .map((size) => size.trim())
+                  .filter(Boolean);
+                const colors = (settings.colors || blank.colors)
+                  .split(',')
+                  .map((color) => color.trim())
+                  .filter(Boolean);
+                setVariantStock(distributeVariantStock(colors, sizes, Number(blank.stock)));
+                setGalleryColor((settings.colors || blank.colors).split(',')[0].trim());
+              }
+              setOpen(next);
+            }}
+            className="btn btn-dark"
+          >
+            {open ? 'Закрыть' : 'Добавить товар'}
+          </button>
+        </div>
       </div>
       {open && (
         <form onSubmit={create} className="bg-sand/60 border border-black/10 p-3 sm:p-5 mb-7">
