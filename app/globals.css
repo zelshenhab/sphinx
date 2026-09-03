@@ -86,6 +86,16 @@ button {
   border: 1px solid #e8e1d5;
   padding: 24px;
 }
+@media (max-width: 639px) {
+  .admin-card {
+    padding: 16px;
+  }
+  button,
+  a,
+  select {
+    touch-action: manipulation;
+  }
+}
 .reveal {
   opacity: 0;
   transform: translate3d(0, 22px, 0);

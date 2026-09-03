@@ -138,7 +138,7 @@ export default function Checkout() {
         </section>
         <section>
           <h2 className="display text-2xl mb-6">Ваш заказ</h2>
-          <div ref={card} className="bg-white p-7 border border-black/10">
+          <div ref={card} className="bg-white p-4 sm:p-7 border border-black/10">
             <div className="flex justify-between mb-7">
               <b className="display text-2xl tracking-widest">SPHINX</b>
               <span className="eyebrow">Карточка заказа</span>

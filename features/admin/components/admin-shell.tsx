@@ -30,7 +30,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     router.refresh();
   };
   return (
-    <div className="container-x py-10">
+    <div className="container-x py-6 sm:py-10">
+      <nav className="md:hidden flex gap-2 overflow-x-auto bg-ink p-2 mb-6 -mx-2">
+        {links.map(({ name, href, icon: Icon }) => (
+          <Link
+            className="shrink-0 flex gap-2 items-center px-3 py-2.5 text-xs text-white/80 bg-white/5"
+            key={href}
+            href={href}
+          >
+            <Icon size={15} /> {name}
+          </Link>
+        ))}
+        <button
+          onClick={() => void logout()}
+          className="shrink-0 flex gap-2 items-center px-3 py-2.5 text-xs text-white/80"
+        >
+          <LogOut size={15} /> Logout
+        </button>
+      </nav>
       <div className="flex gap-8">
         <aside className="hidden md:block w-56 shrink-0 bg-ink text-white p-5 min-h-[70vh]">
           <p className="display tracking-widest text-xl mb-8">SPHINX</p>
@@ -54,10 +71,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </button>
         </aside>
         <div className="flex-1 min-w-0">
-          <header className="flex justify-between items-center mb-8">
+          <header className="flex justify-between items-start gap-3 mb-6 sm:mb-8">
             <div>
               <p className="eyebrow text-brown">Supabase · Live data</p>
-              <h1 className="display text-4xl mt-2">Панель управления</h1>
+              <h1 className="display text-3xl sm:text-4xl mt-2">Панель управления</h1>
             </div>
             <span className="text-xs border px-3 py-2">Admin</span>
           </header>

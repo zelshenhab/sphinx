@@ -56,9 +56,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (safeQuantity < 1) return x;
       if (i < 0) return [...x, { product, color, size, quantity: safeQuantity }];
       return x.map((v, n) =>
-        n === i
-          ? { ...v, quantity: Math.min(v.quantity + safeQuantity, available) }
-          : v,
+        n === i ? { ...v, quantity: Math.min(v.quantity + safeQuantity, available) } : v,
       );
     });
     setOpen(true);
@@ -174,7 +172,7 @@ export function Footer() {
   const { settings } = useCatalog();
   return (
     <footer className="bg-ink text-white mt-24">
-      <div className="container-x py-16 grid md:grid-cols-3 gap-10">
+      <div className="container-x py-12 sm:py-16 grid md:grid-cols-3 gap-8 sm:gap-10">
         <div>
           <div className="display text-3xl tracking-[.2em]">{settings.brand || 'SPHINX'}</div>
           <div className="eyebrow mt-2 text-white/50">{settings.tagline || 'The Guardian'}</div>
@@ -182,9 +180,13 @@ export function Footer() {
         <p className="text-sm text-white/60 max-w-sm">
           Современная одежда, вдохновлённая культурой и наследием Египта.
         </p>
-        <div className="md:text-right text-sm space-x-5">
+        <div className="md:text-right text-sm flex flex-col sm:flex-row md:justify-end flex-wrap gap-x-5 gap-y-3">
           <Link href="/about">О бренде</Link>
           <Link href="/contact">Контакты</Link>
+          <Link href="/privacy">Конфиденциальность</Link>
+          <Link href="/returns">Возврат и обмен</Link>
+          <Link href="/terms">Условия</Link>
+          <Link href="/legal-contact">Данные продавца</Link>
         </div>
       </div>
     </footer>
@@ -199,7 +201,7 @@ function CartDrawer() {
         className={`absolute inset-0 bg-black/35 transition-opacity ${open ? 'opacity-100' : 'opacity-0'}`}
       />
       <aside
-        className={`absolute right-0 top-0 h-full w-full max-w-md bg-ivory p-6 flex flex-col transition-transform ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`absolute right-0 top-0 h-[100dvh] w-full max-w-md bg-ivory p-4 sm:p-6 flex flex-col transition-transform ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex justify-between border-b pb-5">
           <h2 className="display text-2xl">Корзина</h2>
@@ -210,25 +212,31 @@ function CartDrawer() {
         <div className="flex-1 overflow-auto py-5 space-y-5">
           {!items.length && <p className="text-muted">Ваша корзина пуста.</p>}
           {items.map((x, i) => (
-            <div key={i} className="flex gap-4">
+            <div key={i} className="flex gap-3 sm:gap-4">
               <Image
                 src={x.product.images[0]}
                 alt=""
-                width={90}
-                height={110}
-                className="bg-sand object-cover"
+                width={80}
+                height={100}
+                className="bg-sand object-cover shrink-0"
               />
               <div className="flex-1 text-sm">
                 <b>{x.product.name}</b>
                 <p className="text-muted my-2">
                   {x.color} · {x.size}
                 </p>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => change(i, -1)}>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <button
+                    className="w-8 h-8 grid place-items-center border"
+                    onClick={() => change(i, -1)}
+                  >
                     <Minus size={14} />
                   </button>
                   {x.quantity}
-                  <button onClick={() => change(i, 1)}>
+                  <button
+                    className="w-8 h-8 grid place-items-center border"
+                    onClick={() => change(i, 1)}
+                  >
                     <Plus size={14} />
                   </button>
                   <button className="ml-auto" onClick={() => remove(i)}>

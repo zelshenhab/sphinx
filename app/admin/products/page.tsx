@@ -169,7 +169,10 @@ export default function Products() {
         ]),
       ),
     );
-    const totalStock = Object.values(normalizedSizeStock).reduce((total, stock) => total + stock, 0);
+    const totalStock = Object.values(normalizedSizeStock).reduce(
+      (total, stock) => total + stock,
+      0,
+    );
     const p: Product = {
       id: editingId ?? form.slug.trim().toLowerCase().replace(/\s+/g, '-'),
       name: form.name.trim(),
@@ -267,7 +270,7 @@ export default function Products() {
   };
   return (
     <div className="admin-card overflow-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div>
           <h2 className="display text-2xl">Товары</h2>
           <p className="text-xs text-muted mt-1">{list.length} товаров · сохранение в браузере</p>
@@ -303,7 +306,7 @@ export default function Products() {
         </button>
       </div>
       {open && (
-        <form onSubmit={create} className="bg-sand/60 border border-black/10 p-5 mb-7">
+        <form onSubmit={create} className="bg-sand/60 border border-black/10 p-3 sm:p-5 mb-7">
           <h3 className="display text-xl mb-5">Новый товар</h3>
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
             <Field
@@ -468,13 +471,17 @@ export default function Products() {
                 <p className="text-xs text-red-700 mt-2">Выберите хотя бы один размер</p>
               )}
               {selectedSizes.length > 0 && selectedColors.length > 0 && (
-                <div className="mt-5 overflow-x-auto border border-black/10 bg-white p-4">
+                <div className="mt-5 overflow-x-auto border border-black/10 bg-white p-2 sm:p-4">
                   <p className="text-sm font-medium mb-3">Stock by color and size</p>
                   <table className="w-full text-xs min-w-[560px]">
                     <thead>
                       <tr>
                         <th className="text-left p-2">Color</th>
-                        {selectedSizes.map((size) => <th key={size} className="p-2">{size}</th>)}
+                        {selectedSizes.map((size) => (
+                          <th key={size} className="p-2">
+                            {size}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>

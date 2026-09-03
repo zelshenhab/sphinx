@@ -31,7 +31,7 @@ function ProductDetails({ product: p }: { product: Product }) {
     ? Object.values(p.variantStock).reduce((total, stock) => total + stock, 0)
     : p.sizeStock
       ? Object.values(p.sizeStock).reduce((total, stock) => total + stock, 0)
-    : (p.stockQuantity ?? 99);
+      : (p.stockQuantity ?? 99);
   const hasColorGalleries = Object.values(p.colorImages ?? {}).some((images) => images.length > 0);
   const isColorAvailable = (candidate: string) =>
     p.colors.includes(candidate) &&
@@ -51,12 +51,15 @@ function ProductDetails({ product: p }: { product: Product }) {
   const selectedVariantStock = size ? stockForVariant(color, size) : 0;
   const relatedProducts = products
     .filter(
-      (product) => product.id !== p.id && product.stockQuantity !== 0 &&
+      (product) =>
+        product.id !== p.id &&
+        product.stockQuantity !== 0 &&
         categories.some((category) => category.slug === product.category && category.active),
     )
     .sort((a, b) => {
       const score = (product: Product) =>
-        Number(product.category === p.category) * 10 + Number(product.type === p.type) * 4 +
+        Number(product.category === p.category) * 10 +
+        Number(product.type === p.type) * 4 +
         product.colors.filter((candidate) => p.colors.includes(candidate)).length;
       return score(b) - score(a);
     })
@@ -96,9 +99,12 @@ function ProductDetails({ product: p }: { product: Product }) {
   };
   return (
     <>
-      <main className="container-x py-10 grid lg:grid-cols-2 gap-12 lg:gap-20">
+      <main className="container-x py-6 sm:py-10 grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-20">
         <div className="grid md:grid-cols-[96px_minmax(0,1fr)] gap-3 items-start">
-          <div onClick={() => setZoomed(true)} className="relative aspect-[4/5] bg-sand overflow-hidden group/gallery md:col-start-2 md:row-start-1 cursor-zoom-in">
+          <div
+            onClick={() => setZoomed(true)}
+            className="relative aspect-[4/5] bg-sand overflow-hidden group/gallery md:col-start-2 md:row-start-1 cursor-zoom-in"
+          >
             <Image
               key={displayedImage}
               src={displayedImage}
@@ -112,7 +118,10 @@ function ProductDetails({ product: p }: { product: Product }) {
                 <button
                   type="button"
                   aria-label="Previous image"
-                  onClick={(event) => { event.stopPropagation(); navigateImage(-1); }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigateImage(-1);
+                  }}
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center bg-white/85 backdrop-blur opacity-100 md:opacity-0 md:group-hover/gallery:opacity-100 focus:opacity-100 hover:bg-white"
                 >
                   <ChevronLeft size={19} />
@@ -120,7 +129,10 @@ function ProductDetails({ product: p }: { product: Product }) {
                 <button
                   type="button"
                   aria-label="Next image"
-                  onClick={(event) => { event.stopPropagation(); navigateImage(1); }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigateImage(1);
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center bg-white/85 backdrop-blur opacity-100 md:opacity-0 md:group-hover/gallery:opacity-100 focus:opacity-100 hover:bg-white"
                 >
                   <ChevronRight size={19} />
@@ -150,7 +162,7 @@ function ProductDetails({ product: p }: { product: Product }) {
         </div>
         <div className="lg:sticky lg:top-28 self-start">
           <p className="eyebrow text-brown">{p.type}</p>
-          <h1 className="display text-4xl mt-4">SPHINX — {p.name}</h1>
+          <h1 className="display text-3xl sm:text-4xl mt-4">SPHINX — {p.name}</h1>
           <p className="text-xl mt-5">{formatPrice(p.price)}</p>
           {totalStock === 0 ? (
             <p className="text-sm text-red-700 mt-3">
@@ -188,7 +200,7 @@ function ProductDetails({ product: p }: { product: Product }) {
           </div>
           <div className="mt-7">
             <b className="text-sm">Размер: {size}</b>
-            <div className="grid grid-cols-6 gap-2 mt-3">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">
               {allSizes.map((s) => {
                 const remaining = stockForVariant(color, s);
                 const available = p.sizes.includes(s) && remaining > 0;
@@ -219,14 +231,43 @@ function ProductDetails({ product: p }: { product: Product }) {
             <details className="mt-4 border border-black/10 bg-white p-4">
               <summary className="cursor-pointer text-sm font-medium">Таблица размеров</summary>
               <div className="overflow-x-auto mt-4">
-                <table className="w-full text-xs text-center min-w-[420px]"><thead><tr><th className="p-2 text-left">Размер</th><th>Грудь</th><th>Длина</th><th>Рукав</th></tr></thead><tbody>
-                  {[['XS','50','66','20'],['S','53','68','21'],['M','56','71','22'],['L','59','73','23'],['XL','62','75','24'],['XXL','65','77','25']].map((row) => <tr className="border-t" key={row[0]}>{row.map((cell, index) => <td className={`p-2 ${index === 0 ? 'text-left font-medium' : ''}`} key={cell}>{cell}{index > 0 ? ' см' : ''}</td>)}</tr>)}
-                </tbody></table>
+                <table className="w-full text-xs text-center min-w-[420px]">
+                  <thead>
+                    <tr>
+                      <th className="p-2 text-left">Размер</th>
+                      <th>Грудь</th>
+                      <th>Длина</th>
+                      <th>Рукав</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ['XS', '50', '66', '20'],
+                      ['S', '53', '68', '21'],
+                      ['M', '56', '71', '22'],
+                      ['L', '59', '73', '23'],
+                      ['XL', '62', '75', '24'],
+                      ['XXL', '65', '77', '25'],
+                    ].map((row) => (
+                      <tr className="border-t" key={row[0]}>
+                        {row.map((cell, index) => (
+                          <td
+                            className={`p-2 ${index === 0 ? 'text-left font-medium' : ''}`}
+                            key={cell}
+                          >
+                            {cell}
+                            {index > 0 ? ' см' : ''}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </details>
           </div>
-          <div className="flex gap-3 mt-7">
-            <div className="flex border border-black/20 items-center gap-4 px-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-7">
+            <div className="flex border border-black/20 items-center justify-between gap-4 px-4 h-12 sm:h-auto sm:min-w-32">
               <button onClick={() => setQ(Math.max(1, q - 1))}>
                 <Minus size={14} />
               </button>
@@ -260,10 +301,28 @@ function ProductDetails({ product: p }: { product: Product }) {
         </div>
       </main>
       {zoomed && (
-        <div className="fixed inset-0 z-[70] bg-black/90 p-4 md:p-10 grid place-items-center" onClick={() => setZoomed(false)}>
-          <button aria-label="Close image" className="absolute top-5 right-5 text-white p-2" onClick={() => setZoomed(false)}><X /></button>
-          <div className="relative w-full h-full max-w-5xl" onClick={(event) => event.stopPropagation()}>
-            <Image src={displayedImage} alt={p.name} fill className="object-contain" sizes="100vw" />
+        <div
+          className="fixed inset-0 z-[70] bg-black/90 p-4 md:p-10 grid place-items-center"
+          onClick={() => setZoomed(false)}
+        >
+          <button
+            aria-label="Close image"
+            className="absolute top-5 right-5 text-white p-2"
+            onClick={() => setZoomed(false)}
+          >
+            <X />
+          </button>
+          <div
+            className="relative w-full h-full max-w-5xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Image
+              src={displayedImage}
+              alt={p.name}
+              fill
+              className="object-contain"
+              sizes="100vw"
+            />
           </div>
         </div>
       )}
