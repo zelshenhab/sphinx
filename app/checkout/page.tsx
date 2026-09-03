@@ -1,14 +1,16 @@
 'use client';
 import { useRef, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { toPng } from 'html-to-image';
 import { getVariantImage, useCart } from '@/features/cart';
 import { formatPrice, TELEGRAM_USERNAME } from '@/config/site';
 import { createOrder } from '@/core/supabase/store';
 import { useNotification } from '@/features/notifications';
 export default function Checkout() {
-  const { items, total } = useCart();
+  const { items, total, clear } = useCart();
   const { notify } = useNotification();
+  const router = useRouter();
   const [form, setForm] = useState({ name: '', phone: '', telegram: '', city: '', comment: '' });
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +37,11 @@ export default function Checkout() {
     .filter((line, index, lines) => line !== '' || lines[index - 1] !== '')
     .join('\n');
   const telegramUrl = `https://t.me/${TELEGRAM_USERNAME}?text=${encodeURIComponent(text)}`;
+  const sendToTelegram = () => {
+    window.open(telegramUrl, '_blank', 'noopener,noreferrer');
+    clear();
+    router.push('/order-success');
+  };
   const download = async () => {
     if (!card.current) return;
     const data = await toPng(card.current, { pixelRatio: 2 });
@@ -124,14 +131,9 @@ export default function Checkout() {
                 >
                   Скопировать заказ
                 </button>
-                <a
-                  className="btn border border-ink"
-                  href={telegramUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <button className="btn border border-ink" onClick={sendToTelegram}>
                   Отправить заказ
-                </a>
+                </button>
               </div>
             </div>
           )}
