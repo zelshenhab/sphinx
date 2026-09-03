@@ -116,28 +116,30 @@ function CategoryCard({
   const available = category.active && Boolean(category.image?.trim()) && !imageFailed;
   const content = (
     <>
-      <div className="absolute inset-0 grid place-items-center bg-sand text-center p-5">
-        <div>
-          <h3 className="display text-2xl">{category.name}</h3>
-          <p className="eyebrow text-brown mt-4">Coming soon</p>
-          <p className="display text-2xl mt-3">Скоро в продаже</p>
-          <p className="text-xs text-muted mt-2">Сейчас недоступно</p>
-        </div>
-      </div>
+      <div className="absolute inset-0 bg-sand" />
       {category.image?.trim() && (
         <Image
           src={category.image}
           alt={category.name}
           fill
           onError={() => setImageFailed(true)}
-          className={`object-cover transition duration-700 ${available ? 'group-hover:scale-105 opacity-100' : 'opacity-0'}`}
+          className={`object-cover transition duration-700 ${available ? 'group-hover:scale-105' : 'scale-110 blur-xl brightness-[.45]'}`}
         />
       )}
-      <div
-        className={`absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black/60 text-white ${available ? '' : 'opacity-0'}`}
-      >
-        <h3 className="display text-2xl">{category.name}</h3>
-      </div>
+      {available ? (
+        <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black/60 text-white">
+          <h3 className="display text-2xl">{category.name}</h3>
+        </div>
+      ) : (
+        <div className="absolute inset-0 grid place-items-center bg-black/25 text-center text-white p-5">
+          <div>
+            <h3 className="display text-3xl">{category.name}</h3>
+            <p className="eyebrow text-white/75 mt-4">Coming soon</p>
+            <p className="display text-2xl mt-3">Скоро в продаже</p>
+            <p className="text-xs text-white/70 mt-2">Сейчас недоступно</p>
+          </div>
+        </div>
+      )}
     </>
   );
   return available ? (
