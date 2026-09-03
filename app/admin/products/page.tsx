@@ -67,6 +67,7 @@ export default function Products() {
   const { notify } = useNotification();
   const { categories, refresh, settings } = useCatalog();
   const [list, setList] = useState<Product[]>(seed);
+  const [remoteProducts, setRemoteProducts] = useState<Product[] | null>(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blank);
   const [error, setError] = useState('');
@@ -84,7 +85,8 @@ export default function Products() {
   const [galleryColor, setGalleryColor] = useState('Black');
   const [galleryUploading, setGalleryUploading] = useState(false);
   const missingSeedProducts = seed.filter(
-    (originalProduct) => !list.some((product) => product.slug === originalProduct.slug),
+    (originalProduct) =>
+      !(remoteProducts ?? list).some((product) => product.slug === originalProduct.slug),
   );
   const selectedColors = form.colors
     .split(',')
@@ -148,6 +150,7 @@ export default function Products() {
       if (local.length) setList(local);
       try {
         const remote = await listProducts();
+        setRemoteProducts(remote);
         if (remote.length) setList(remote);
       } catch (loadError) {
         console.info('[SPHINX_ADMIN_LOCAL_FALLBACK]', loadError);
@@ -306,6 +309,7 @@ export default function Products() {
                 try {
                   const restored = await Promise.all(missingSeedProducts.map(createProduct));
                   save([...restored, ...list]);
+                  setRemoteProducts((current) => [...restored, ...(current ?? [])]);
                   await refresh();
                   notify(
                     {
