@@ -11,11 +11,32 @@ export default function Checkout() {
   const { items, total, clear } = useCart();
   const { notify } = useNotification();
   const router = useRouter();
-  const [form, setForm] = useState({ name: '', phone: '', telegram: '', city: '', comment: '' });
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    telegram: '',
+    city: '',
+    street: '',
+    building: '',
+    entrance: '',
+    floor: '',
+    apartment: '',
+    comment: '',
+  });
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState('');
   const card = useRef<HTMLDivElement>(null);
+  const fullAddress = [
+    form.city,
+    form.street && `ул. ${form.street}`,
+    form.building && `дом ${form.building}`,
+    form.entrance && `подъезд ${form.entrance}`,
+    form.floor && `этаж ${form.floor}`,
+    form.apartment && `кв. ${form.apartment}`,
+  ]
+    .filter(Boolean)
+    .join(', ');
   const text = [
     '🛍 SPHINX ORDER',
     orderId ? `Order ID: ${orderId}` : '',
@@ -23,7 +44,7 @@ export default function Checkout() {
     `Имя: ${form.name}`,
     `Телефон: ${form.phone}`,
     form.telegram ? `Telegram: ${form.telegram}` : '',
-    `Город: ${form.city}`,
+    `Адрес: ${fullAddress}`,
     form.comment ? `Комментарий: ${form.comment}` : '',
     '',
     'Товары:',
@@ -51,13 +72,30 @@ export default function Checkout() {
     a.click();
   };
   const submitOrder = async () => {
-    if (!items.length || !form.name.trim() || !form.phone.trim() || !form.city.trim()) {
+    if (
+      !items.length ||
+      !form.name.trim() ||
+      !form.phone.trim() ||
+      !form.city.trim() ||
+      !form.street.trim() ||
+      !form.building.trim() ||
+      !form.apartment.trim()
+    ) {
       notify('required_fields', 'warning');
       return;
     }
     setSubmitting(true);
     try {
-      const id = await createOrder(form, items);
+      const id = await createOrder(
+        {
+          name: form.name,
+          phone: form.phone,
+          telegram: form.telegram,
+          city: fullAddress,
+          comment: form.comment,
+        },
+        items,
+      );
       setOrderId(id);
       setReady(true);
       notify({ ru: 'Заказ сохранён', en: 'Order saved' }, 'success');
@@ -86,7 +124,6 @@ export default function Checkout() {
               name: 'Имя',
               phone: 'Телефон',
               telegram: 'Telegram username (необязательно)',
-              city: 'Город',
             }).map(([k, l]) => (
               <input
                 key={k}
@@ -94,6 +131,26 @@ export default function Checkout() {
                 placeholder={l}
                 value={form[k as keyof typeof form]}
                 onChange={(e) => setForm({ ...form, [k]: e.target.value })}
+              />
+            ))}
+            <div className="sm:col-span-2 border-t border-black/10 pt-5 mt-1">
+              <h3 className="display text-xl">Адрес доставки</h3>
+              <p className="text-xs text-muted mt-1">Укажите адрес подробно</p>
+            </div>
+            {Object.entries({
+              city: 'Город *',
+              street: 'Улица *',
+              building: 'Дом *',
+              entrance: 'Подъезд',
+              floor: 'Этаж',
+              apartment: 'Квартира *',
+            }).map(([key, label]) => (
+              <input
+                key={key}
+                className="field"
+                placeholder={label}
+                value={form[key as keyof typeof form]}
+                onChange={(event) => setForm({ ...form, [key]: event.target.value })}
               />
             ))}
             <textarea
@@ -105,7 +162,15 @@ export default function Checkout() {
           </div>
           <button
             disabled={
-              ready || submitting || !items.length || !form.name || !form.phone || !form.city
+              ready ||
+              submitting ||
+              !items.length ||
+              !form.name ||
+              !form.phone ||
+              !form.city ||
+              !form.street ||
+              !form.building ||
+              !form.apartment
             }
             onClick={() => void submitOrder()}
             className="btn btn-dark mt-6 disabled:opacity-40"
@@ -171,7 +236,7 @@ export default function Checkout() {
             </div>
             {ready && (
               <div className="text-xs text-muted mt-5">
-                {form.name} · {form.city} · {form.phone}
+                {form.name} · {fullAddress} · {form.phone}
               </div>
             )}
           </div>
