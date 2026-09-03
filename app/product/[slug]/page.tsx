@@ -23,18 +23,24 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   );
 }
 function ProductDetails({ product: p }: { product: Product }) {
+  const stockForSize = (candidate: string) =>
+    p.sizeStock?.[candidate] ?? (p.sizes.includes(candidate) ? (p.stockQuantity ?? 99) : 0);
+  const totalStock = p.sizeStock
+    ? Object.values(p.sizeStock).reduce((total, stock) => total + stock, 0)
+    : (p.stockQuantity ?? 99);
   const hasColorGalleries = Object.values(p.colorImages ?? {}).some((images) => images.length > 0);
   const isColorAvailable = (candidate: string) =>
     p.colors.includes(candidate) &&
     (!hasColorGalleries || (p.colorImages?.[candidate]?.length ?? 0) > 0);
   const defaultColor = p.colors.find(isColorAvailable) ?? p.colors.find(Boolean) ?? '';
   const [color, setColor] = useState(defaultColor);
-  const [size, setSize] = useState(p.sizes[0]);
+  const [size, setSize] = useState(p.sizes.find((candidate) => stockForSize(candidate) > 0) ?? '');
   const [q, setQ] = useState(1);
   const [image, setImage] = useState(p.colorImages?.[defaultColor]?.[0] || p.images[0]);
   const { add } = useCart();
   const { categories, products, settings } = useCatalog();
   const { language } = useLanguage();
+  const selectedSizeStock = size ? stockForSize(size) : 0;
   const relatedProducts = [
     ...products.filter(
       (product) =>
@@ -136,10 +142,10 @@ function ProductDetails({ product: p }: { product: Product }) {
           <p className="eyebrow text-brown">{p.type}</p>
           <h1 className="display text-4xl mt-4">SPHINX — {p.name}</h1>
           <p className="text-xl mt-5">{formatPrice(p.price)}</p>
-          {p.stockQuantity === 0 ? (
+          {totalStock === 0 ? (
             <p className="text-sm text-red-700 mt-3">Нет в наличии</p>
-          ) : p.stockQuantity !== undefined && p.stockQuantity <= 10 ? (
-            <p className="text-sm text-amber-700 mt-3">Осталось всего {p.stockQuantity} шт.</p>
+          ) : totalStock <= 10 ? (
+            <p className="text-sm text-amber-700 mt-3">Осталось всего {totalStock} шт.</p>
           ) : null}
           <p className="text-muted leading-7 mt-7">{p.description}</p>
           <div className="mt-9">
@@ -170,13 +176,17 @@ function ProductDetails({ product: p }: { product: Product }) {
             <b className="text-sm">Размер: {size}</b>
             <div className="grid grid-cols-6 gap-2 mt-3">
               {allSizes.map((s) => {
-                const available = p.sizes.includes(s);
+                const remaining = stockForSize(s);
+                const available = p.sizes.includes(s) && remaining > 0;
                 return (
                   <button
                     disabled={!available}
-                    onClick={() => setSize(s)}
+                    onClick={() => {
+                      setSize(s);
+                      setQ((current) => Math.min(current, remaining));
+                    }}
                     key={s}
-                    title={available ? s : `${s} — недоступен`}
+                    title={available ? `${s} — осталось ${remaining}` : `${s} — недоступен`}
                     className={`relative py-3 text-xs border ${size === s && available ? 'bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-35 line-through bg-black/5'}`}
                   >
                     {s}
@@ -184,6 +194,11 @@ function ProductDetails({ product: p }: { product: Product }) {
                 );
               })}
             </div>
+            {size && selectedSizeStock > 0 && (
+              <p className="text-sm text-amber-700 mt-3">
+                Осталось {selectedSizeStock} шт. размера {size}
+              </p>
+            )}
             <p className="text-[11px] text-muted mt-2">Зачёркнутые размеры сейчас недоступны</p>
           </div>
           <div className="flex gap-3 mt-7">
@@ -192,16 +207,18 @@ function ProductDetails({ product: p }: { product: Product }) {
                 <Minus size={14} />
               </button>
               {q}
-              <button onClick={() => setQ(Math.min(q + 1, p.stockQuantity ?? 99))}>
+              <button onClick={() => setQ(Math.min(q + 1, selectedSizeStock))}>
                 <Plus size={14} />
               </button>
             </div>
             <button
-              disabled={p.stockQuantity === 0}
+              disabled={totalStock === 0 || selectedSizeStock === 0}
               onClick={() => add(p, color, size, q)}
               className="btn btn-dark flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {p.stockQuantity === 0 ? 'Нет в наличии' : 'Добавить в корзину'}
+              {totalStock === 0 || selectedSizeStock === 0
+                ? 'Нет в наличии'
+                : 'Добавить в корзину'}
             </button>
           </div>
           <a

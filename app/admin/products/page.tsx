@@ -36,6 +36,15 @@ const blank = {
 function load() {
   return clientStorage.get(storageKeys.products, seed);
 }
+function distributeStock(sizes: string[], total = 20) {
+  const safeTotal = Math.max(0, Math.floor(total));
+  return Object.fromEntries(
+    sizes.map((size, index) => [
+      size,
+      Math.floor(safeTotal / sizes.length) + (index < safeTotal % sizes.length ? 1 : 0),
+    ]),
+  );
+}
 export default function Products() {
   const { notify } = useNotification();
   const { categories, refresh, settings } = useCatalog();
@@ -46,6 +55,9 @@ export default function Products() {
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [colorImages, setColorImages] = useState<Record<string, string[]>>({});
+  const [sizeStock, setSizeStock] = useState<Record<string, number>>(
+    distributeStock(blank.sizes.split(',').map((size) => size.trim()), Number(blank.stock)),
+  );
   const [galleryColor, setGalleryColor] = useState('Black');
   const [galleryUploading, setGalleryUploading] = useState(false);
   const selectedColors = form.colors
@@ -79,6 +91,12 @@ export default function Products() {
       ? selectedSizes.filter((item) => item !== size)
       : [...selectedSizes, size];
     setForm({ ...form, sizes: next.join(', ') });
+    setSizeStock((current) => {
+      if (!selectedSizes.includes(size)) return { ...current, [size]: current[size] ?? 0 };
+      const copy = { ...current };
+      delete copy[size];
+      return copy;
+    });
   };
   const toggleColor = (color: string) => {
     const next = selectedColors.includes(color)
@@ -117,14 +135,19 @@ export default function Products() {
       return;
     }
     const existingProduct = editingId ? list.find((item) => item.id === editingId) : undefined;
+    const normalizedSizeStock = Object.fromEntries(
+      selectedSizes.map((size) => [size, Math.max(0, Math.floor(Number(sizeStock[size]) || 0))]),
+    );
+    const totalStock = Object.values(normalizedSizeStock).reduce((total, stock) => total + stock, 0);
     const p: Product = {
-      id: editingId ?? Date.now().toString(),
+      id: editingId ?? form.slug.trim().toLowerCase().replace(/\s+/g, '-'),
       name: form.name.trim(),
       slug: form.slug.trim().toLowerCase().replace(/\s+/g, '-'),
       category: form.category,
       price: Number(form.price),
       oldPrice: form.oldPrice ? Number(form.oldPrice) : undefined,
-      stockQuantity: Math.max(0, Number(form.stock)),
+      sizeStock: normalizedSizeStock,
+      stockQuantity: totalStock,
       description: form.description || 'Новая модель SPHINX.',
       material: form.material,
       gsm: form.gsm || undefined,
@@ -165,6 +188,7 @@ export default function Products() {
     }
     setForm(blank);
     setColorImages({});
+    setSizeStock(distributeStock(blank.sizes.split(',').map((size) => size.trim()), 20));
     setEditingId(null);
     setError('');
     setOpen(false);
@@ -222,6 +246,11 @@ export default function Products() {
             if (next) {
               setEditingId(null);
               setColorImages({});
+              const sizes = (settings.sizes || blank.sizes)
+                .split(',')
+                .map((size) => size.trim())
+                .filter(Boolean);
+              setSizeStock(distributeStock(sizes, Number(blank.stock)));
               setGalleryColor((settings.colors || blank.colors).split(',')[0].trim());
             }
             setOpen(next);
@@ -277,12 +306,6 @@ export default function Products() {
               type="number"
               value={form.oldPrice}
               change={(v) => setForm({ ...form, oldPrice: v })}
-            />
-            <Field
-              label="Stock quantity"
-              type="number"
-              value={form.stock}
-              change={(v) => setForm({ ...form, stock: v })}
             />
             <label>
               <T>Product type</T>
@@ -402,6 +425,28 @@ export default function Products() {
               {!selectedSizes.length && (
                 <p className="text-xs text-red-700 mt-2">Выберите хотя бы один размер</p>
               )}
+              {selectedSizes.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                  {selectedSizes.map((size) => (
+                    <label key={size} className="border border-black/10 bg-white p-3">
+                      <T>Stock for size {size}</T>
+                      <input
+                        className="field mt-2"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={sizeStock[size] ?? 0}
+                        onChange={(event) =>
+                          setSizeStock((current) => ({
+                            ...current,
+                            [size]: Math.max(0, Number(event.target.value)),
+                          }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
             <Field
               label="Image path"
@@ -500,6 +545,9 @@ export default function Products() {
                   onClick={() => {
                     setEditingId(p.id);
                     setColorImages(p.colorImages ?? {});
+                    setSizeStock(
+                      p.sizeStock ?? distributeStock(p.sizes, p.stockQuantity ?? 20),
+                    );
                     setGalleryColor(p.colors[0] ?? 'Black');
                     setForm({
                       name: p.name,

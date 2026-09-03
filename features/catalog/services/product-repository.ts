@@ -86,9 +86,18 @@ export async function listProducts() {
       .filter((row) => row.key.startsWith('product_stock:'))
       .map((row) => [row.key.replace('product_stock:', ''), Number(row.value)]),
   );
+  const sizeStock = new Map(
+    (mediaRows ?? [])
+      .filter((row) => row.key.startsWith('product_size_stock:'))
+      .map((row) => [
+        row.key.replace('product_size_stock:', ''),
+        row.value as Record<string, number>,
+      ]),
+  );
   return (data as ProductRow[]).map((row) => ({
     ...rowToProduct(row),
     colorImages: media.get(row.id) ?? {},
+    sizeStock: sizeStock.get(row.id) ?? undefined,
     stockQuantity: stock.get(row.id) ?? 20,
   }));
 }
@@ -150,6 +159,7 @@ export async function createProduct(product: Product) {
   const created = {
     ...rowToProduct(data as ProductRow),
     colorImages: product.colorImages ?? {},
+    sizeStock: product.sizeStock ?? {},
     stockQuantity: product.stockQuantity ?? 20,
   };
   await saveProductMetadata(supabase, created);
@@ -168,6 +178,7 @@ export async function updateProduct(product: Product) {
   return {
     ...rowToProduct(data as ProductRow),
     colorImages: product.colorImages ?? {},
+    sizeStock: product.sizeStock ?? {},
     stockQuantity: product.stockQuantity ?? 20,
   };
 }
@@ -178,12 +189,17 @@ export async function deleteProduct(id: string) {
   await supabase
     .from('store_settings')
     .delete()
-    .in('key', [`product_color_images:${id}`, `product_stock:${id}`]);
+    .in('key', [
+      `product_color_images:${id}`,
+      `product_stock:${id}`,
+      `product_size_stock:${id}`,
+    ]);
 }
 async function saveProductMetadata(supabase: ReturnType<typeof createClient>, product: Product) {
   const { error } = await supabase.from('store_settings').upsert([
     { key: `product_color_images:${product.id}`, value: product.colorImages ?? {} },
     { key: `product_stock:${product.id}`, value: product.stockQuantity ?? 20 },
+    { key: `product_size_stock:${product.id}`, value: product.sizeStock ?? {} },
   ]);
   if (error) throw error;
 }
