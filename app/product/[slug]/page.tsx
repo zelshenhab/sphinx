@@ -44,6 +44,8 @@ function ProductDetails({ product: p }: { product: Product }) {
     : p.sizeStock
       ? Object.values(p.sizeStock).reduce((total, stock) => total + stock, 0)
       : (p.stockQuantity ?? 99);
+  const discountPercent =
+    p.oldPrice && p.oldPrice > p.price ? Math.round((1 - p.price / p.oldPrice) * 100) : 0;
   const hasColorGalleries = Object.values(p.colorImages ?? {}).some((images) => images.length > 0);
   const isColorAvailable = (candidate: string) =>
     p.colors.includes(candidate) &&
@@ -145,6 +147,11 @@ function ProductDetails({ product: p }: { product: Product }) {
               priority
               className="object-cover product-gallery-image"
             />
+            {discountPercent > 0 && (
+              <span className="absolute z-10 top-3 left-3 bg-red-700 text-white px-3 py-1.5 text-[10px] tracking-wider">
+                {tr('СКИДКА', 'SALE')} −{discountPercent}%
+              </span>
+            )}
             {currentImages.length > 1 && (
               <>
                 <button
@@ -198,7 +205,19 @@ function ProductDetails({ product: p }: { product: Product }) {
         <div className="lg:sticky lg:top-28 self-start">
           <p className="eyebrow text-brown">{p.type}</p>
           <h1 className="display text-3xl sm:text-4xl mt-4">SPHINX — {p.name}</h1>
-          <p className="text-xl mt-5">{formatPrice(p.price)}</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-5">
+            <b className={discountPercent > 0 ? 'text-2xl text-red-700' : 'text-xl'}>
+              {formatPrice(p.price)}
+            </b>
+            {p.oldPrice && p.oldPrice > p.price && (
+              <s className="text-base text-muted">{formatPrice(p.oldPrice)}</s>
+            )}
+            {discountPercent > 0 && (
+              <span className="bg-red-700 text-white px-2.5 py-1 text-[10px] tracking-wider">
+                {tr('ВЫГОДА', 'SAVE')} {discountPercent}%
+              </span>
+            )}
+          </div>
           {totalStock === 0 ? (
             <p className="text-sm text-red-700 mt-3">
               {language === 'en' ? 'Out of stock' : 'Нет в наличии'}
