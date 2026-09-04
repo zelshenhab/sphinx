@@ -50,6 +50,15 @@ export default function Privacy() {
           ],
         },
         {
+          title: { ru: 'Виртуальная примерка', en: 'Virtual try-on' },
+          paragraphs: [
+            {
+              ru: 'Если вы добровольно используете виртуальную примерку, выбранное фото временно передаётся сервису FASHN AI только для создания результата. Фото не сохраняется в аккаунте SPHINX. Результат возвращается в формате Base64 и доступен у провайдера не более 60 минут.',
+              en: 'If you voluntarily use virtual try-on, your selected photo is temporarily sent to FASHN AI only to generate the result. SPHINX does not save the photo to your account. The result is returned as Base64 and remains available from the provider for no more than 60 minutes.',
+            },
+          ],
+        },
+        {
           title: { ru: 'Ваши права', en: 'Your rights' },
           paragraphs: [
             {
