@@ -163,7 +163,7 @@ export function Header() {
           </button>
           <Link
             href="/"
-            className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 text-center leading-none"
+            className="absolute left-[40%] -translate-x-1/2 sm:left-1/2 lg:static lg:translate-x-0 text-center leading-none"
           >
             <b className="display text-xl sm:text-2xl tracking-[.22em]">
               {settings.brand || 'SPHINX'}
@@ -185,9 +185,7 @@ export function Header() {
             ))}
           </nav>
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="hidden sm:block">
-              <LanguageSwitch />
-            </div>
+            <LanguageSwitch />
             <button onClick={() => setSearchOpen(true)} aria-label="Search" className="p-1">
               <Search size={18} />
             </button>
@@ -243,10 +241,6 @@ export function Header() {
             ))}
           </nav>
           <div className="mt-auto border-t border-black/10 pt-5">
-            <div className="flex items-center justify-between mb-5">
-              <span className="text-[10px] uppercase tracking-widest text-muted">Language</span>
-              <LanguageSwitch />
-            </div>
             <div className="flex justify-between text-xs">
               <Link href="/contact" onClick={() => setMenu(false)}>
                 Контакты
