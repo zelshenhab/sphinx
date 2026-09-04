@@ -1,5 +1,5 @@
 'use client';
-import { use, useRef, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-react';
@@ -61,6 +61,8 @@ function ProductDetails({ product: p }: { product: Product }) {
   const [zoomed, setZoomed] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const ignoreGalleryClick = useRef(false);
+  const purchaseActionsRef = useRef<HTMLDivElement>(null);
+  const [purchaseActionsVisible, setPurchaseActionsVisible] = useState(false);
   const { add } = useCart();
   const { categories, products, settings } = useCatalog();
   const { language } = useLanguage();
@@ -126,10 +128,20 @@ function ProductDetails({ product: p }: { product: Product }) {
     setSize(nextSize);
     setQ(1);
   };
+  useEffect(() => {
+    const element = purchaseActionsRef.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setPurchaseActionsVisible(entry.isIntersecting),
+      { threshold: 0.35 },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   return (
     <>
       <main className="container-x py-6 sm:py-10 pb-28 lg:pb-10 grid lg:grid-cols-[minmax(0,1.15fr)_minmax(380px,.85fr)] gap-8 sm:gap-12 lg:gap-16">
-        <div className="grid md:grid-cols-[96px_minmax(0,1fr)] gap-3 items-start">
+        <div className="grid md:grid-cols-[96px_minmax(0,1fr)] gap-3 items-start -mx-5 sm:mx-0">
           <div
             onClick={() => {
               if (!ignoreGalleryClick.current) setZoomed(true);
@@ -241,7 +253,7 @@ function ProductDetails({ product: p }: { product: Product }) {
                     onClick={() => selectColor(c)}
                     key={c}
                     title={available ? c : `${c} — ${tr('недоступен', 'unavailable')}`}
-                    className={`relative flex items-center gap-2 px-4 py-2 text-xs border active:scale-95 ${color === c && available ? 'border-ink bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-40 line-through bg-black/5'}`}
+                    className={`relative flex items-center gap-2 px-5 py-3 text-xs border active:scale-95 ${color === c && available ? 'border-ink bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-40 line-through bg-black/5'}`}
                   >
                     <span
                       className="w-3.5 h-3.5 rounded-full border border-black/40 shadow-sm"
@@ -280,7 +292,7 @@ function ProductDetails({ product: p }: { product: Product }) {
                         ? `${s} — ${tr(`осталось ${remaining}`, `${remaining} left`)}`
                         : `${s} — ${tr('недоступен', 'unavailable')}`
                     }
-                    className={`relative py-3 text-xs border transition-transform active:scale-95 ${size === s && available ? 'bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-35 line-through bg-black/5'}`}
+                    className={`relative py-4 text-xs border transition-transform active:scale-95 ${size === s && available ? 'bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-35 line-through bg-black/5'}`}
                   >
                     {s}
                   </button>
@@ -351,7 +363,7 @@ function ProductDetails({ product: p }: { product: Product }) {
               </div>
             </details>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 mt-7">
+          <div ref={purchaseActionsRef} className="flex flex-col sm:flex-row gap-3 mt-7">
             <div className="flex border border-black/20 items-center justify-between gap-4 px-4 h-12 sm:h-auto sm:min-w-32">
               <button onClick={() => setQ(Math.max(1, q - 1))}>
                 <Minus size={14} />
@@ -377,6 +389,28 @@ function ProductDetails({ product: p }: { product: Product }) {
           >
             {tr('Заказать в Telegram', 'Order via Telegram')}
           </a>
+          <div className="grid grid-cols-3 border-y border-black/10 mt-6 py-4 text-center divide-x divide-black/10">
+            <div className="px-2">
+              <b className="block text-[10px] uppercase tracking-wider">Premium</b>
+              <span className="text-[9px] text-muted mt-1 block">
+                {tr('Плотная ткань', 'Heavy fabric')}
+              </span>
+            </div>
+            <div className="px-2">
+              <b className="block text-[10px] uppercase tracking-wider">Telegram</b>
+              <span className="text-[9px] text-muted mt-1 block">
+                {tr('Прямой заказ', 'Direct order')}
+              </span>
+            </div>
+            <div className="px-2">
+              <b className="block text-[10px] uppercase tracking-wider">
+                {tr('Возврат', 'Returns')}
+              </b>
+              <span className="text-[9px] text-muted mt-1 block">
+                {tr('Обмен и возврат', 'Exchange & return')}
+              </span>
+            </div>
+          </div>
           <div className="grid grid-cols-3 gap-2 mt-10">
             <ProductFact label={tr('Состав', 'Material')} value={p.material} />
             <ProductFact label={tr('Плотность', 'Weight')} value={p.gsm || '—'} />
@@ -432,7 +466,9 @@ function ProductDetails({ product: p }: { product: Product }) {
           <ProductGrid products={relatedProducts} />
         </section>
       )}
-      <div className="fixed inset-x-0 bottom-0 z-40 bg-ivory/95 backdrop-blur border-t border-black/10 p-3 flex items-center gap-4 lg:hidden">
+      <div
+        className={`fixed inset-x-0 bottom-0 z-40 bg-ivory/95 backdrop-blur border-t border-black/10 p-3 flex items-center gap-4 lg:hidden transition-transform duration-300 ${purchaseActionsVisible ? 'translate-y-full pointer-events-none' : 'translate-y-0'}`}
+      >
         <div className="min-w-0">
           <p className="text-[10px] text-muted truncate">
             {color} / {size || '—'}

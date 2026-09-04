@@ -1,21 +1,16 @@
 'use client';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Product } from '@/types';
-import { formatPrice } from '@/config/site';
+import { formatPrice, getColorSwatch } from '@/config/site';
 import { useCart } from '@/features/cart';
 import { useLanguage } from '@/features/i18n';
-
-const storefrontColors = [
-  { label: 'Black', aliases: ['black', 'чёрный', 'черный'], value: '#1d1d1b' },
-  { label: 'White', aliases: ['white', 'белый'], value: '#ffffff' },
-  { label: 'Sand', aliases: ['beige', 'sand', 'бежевый'], value: '#b18a55' },
-  { label: 'Olive', aliases: ['olive', 'khaki', 'оливковый', 'хаки'], value: '#596044' },
-] as const;
 
 export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
   const { language } = useLanguage();
+  const [previewColor, setPreviewColor] = useState(product.colors[0] ?? '');
   const availableVariant = product.colors
     .flatMap((color) =>
       product.sizes.map((size) => ({
@@ -42,11 +37,11 @@ export function ProductCard({ product }: { product: Product }) {
     product.oldPrice && product.oldPrice > product.price
       ? Math.round((1 - product.price / product.oldPrice) * 100)
       : 0;
-  const availableSwatches = storefrontColors.filter((swatch) =>
-    product.colors.some((color) =>
-      swatch.aliases.some((alias) => alias === color.trim().toLowerCase()),
-    ),
-  );
+  const previewImages = product.colorImages?.[previewColor]?.length
+    ? product.colorImages[previewColor]
+    : product.images;
+  const primaryImage = previewImages[0] ?? product.images[0];
+  const secondaryImage = previewImages[1] ?? product.images[1];
   return (
     <article className="group product-card">
       <Link
@@ -54,11 +49,19 @@ export function ProductCard({ product }: { product: Product }) {
         className="relative block bg-sand overflow-hidden aspect-[4/5]"
       >
         <Image
-          src={product.images[0]}
+          src={primaryImage}
           alt={product.name}
           fill
           className="object-cover transition duration-700 group-hover:scale-[1.035]"
         />
+        {secondaryImage && secondaryImage !== primaryImage && (
+          <Image
+            src={secondaryImage}
+            alt=""
+            fill
+            className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100 hidden md:block"
+          />
+        )}
         {(product.isNew || product.isSale) && (
           <span className="absolute top-3 left-3 bg-white px-3 py-1 text-[9px] tracking-widest">
             {product.isSale ? 'SALE' : 'NEW'}
@@ -79,6 +82,16 @@ export function ProductCard({ product }: { product: Product }) {
             {language === 'en' ? 'OUT OF STOCK' : 'НЕТ В НАЛИЧИИ'}
           </span>
         )}
+        {previewImages.length > 1 && (
+          <div className="absolute bottom-3 right-3 flex gap-1 md:hidden">
+            {previewImages.slice(0, 4).map((image, index) => (
+              <i
+                key={image}
+                className={`w-1.5 h-1.5 rounded-full ${index === 0 ? 'bg-ink' : 'bg-white/80'}`}
+              />
+            ))}
+          </div>
+        )}
       </Link>
       <div className="pt-4">
         <Link href={`/product/${product.slug}`}>
@@ -98,13 +111,15 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
         <div className="flex gap-2 mt-3">
-          {availableSwatches.map((swatch) => (
-            <i
-              title={swatch.label}
-              aria-label={swatch.label}
-              key={swatch.label}
-              className="w-3.5 h-3.5 rounded-full border border-black/25 shadow-sm"
-              style={{ backgroundColor: swatch.value }}
+          {product.colors.map((color) => (
+            <button
+              type="button"
+              title={color}
+              aria-label={`${language === 'en' ? 'Preview' : 'Показать'} ${color}`}
+              key={color}
+              onClick={() => setPreviewColor(color)}
+              className={`w-4 h-4 rounded-full border shadow-sm ${previewColor === color ? 'ring-1 ring-ink ring-offset-2' : 'border-black/25'}`}
+              style={{ backgroundColor: getColorSwatch(color) }}
             />
           ))}
         </div>
@@ -119,9 +134,17 @@ export function ProductCard({ product }: { product: Product }) {
     </article>
   );
 }
-export function ProductGrid({ products }: { products: Product[] }) {
+export function ProductGrid({
+  products,
+  mobileColumns = 2,
+}: {
+  products: Product[];
+  mobileColumns?: 1 | 2;
+}) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-7">
+    <div
+      className={`grid ${mobileColumns === 1 ? 'grid-cols-1' : 'grid-cols-2'} lg:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-7`}
+    >
       {products.map((p) => (
         <ProductCard key={p.id} product={p} />
       ))}

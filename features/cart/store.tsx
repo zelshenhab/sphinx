@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { Menu, Search, ShoppingBag, X, Minus, Plus, Send, Trash2 } from 'lucide-react';
 import type { CartItem, Product } from '@/types';
 import { formatPrice, siteConfig, TELEGRAM_USERNAME } from '@/config/site';
@@ -116,6 +117,7 @@ const nav = siteConfig.navigation.map(({ label, href }) => [label, href] as cons
 export function Header() {
   const { count, setOpen } = useCart();
   const { categories, settings } = useCatalog();
+  const { language } = useLanguage();
   const visibleNav = [
     ...nav,
     ...categories
@@ -125,21 +127,55 @@ export function Header() {
   const telegram = settings.telegram || TELEGRAM_USERNAME;
   const [menu, setMenu] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
+  const currentCategory = categories.find((category) => pathname === `/shop/${category.slug}`);
+  const pageLabel =
+    currentCategory?.name ??
+    (pathname.startsWith('/product/') ? (language === 'en' ? 'Product' : 'Товар') : '');
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 16);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  useEffect(() => {
+    document.body.style.overflow = menu ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [menu]);
   return (
     <>
       <div className="bg-ink text-white text-center py-2 text-[10px] tracking-[.2em]">
         {settings.announcement || 'БЕСПЛАТНАЯ ДОСТАВКА ОТ 7 000 ₽'}
       </div>
-      <header className="sticky top-0 z-40 bg-ivory/95 backdrop-blur border-b border-black/10">
-        <div className="container-x h-20 flex items-center justify-between">
-          <button className="lg:hidden" onClick={() => setMenu(!menu)}>
+      <header
+        className={`sticky top-0 z-40 border-b border-black/10 transition ${scrolled ? 'bg-ivory shadow-lg backdrop-blur-xl' : 'bg-ivory/95 backdrop-blur'}`}
+      >
+        <div className="container-x h-16 sm:h-20 flex items-center justify-between relative">
+          <button
+            className="lg:hidden z-10 p-2 -ml-2"
+            onClick={() => setMenu(true)}
+            aria-label="Open menu"
+          >
             <Menu />
           </button>
-          <Link href="/" className="text-center leading-none">
-            <b className="display text-2xl tracking-[.22em]">{settings.brand || 'SPHINX'}</b>
-            <small className="block text-[7px] tracking-[.42em] mt-1">
+          <Link
+            href="/"
+            className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 text-center leading-none"
+          >
+            <b className="display text-xl sm:text-2xl tracking-[.22em]">
+              {settings.brand || 'SPHINX'}
+            </b>
+            <small className="hidden sm:block text-[7px] tracking-[.42em] mt-1">
               {settings.tagline || 'THE GUARDIAN'}
             </small>
+            {pageLabel && (
+              <small className="block sm:hidden text-[7px] tracking-[.18em] mt-1 uppercase text-muted">
+                {pageLabel}
+              </small>
+            )}
           </Link>
           <nav className="hidden lg:flex gap-6 text-[11px] uppercase tracking-wider">
             {visibleNav.map(([n, h]) => (
@@ -170,40 +206,91 @@ export function Header() {
             </button>
           </div>
         </div>
-        {menu && (
-          <nav className="lg:hidden px-6 pb-6 grid gap-4">
-            {visibleNav.map(([n, h]) => (
-              <Link onClick={() => setMenu(false)} key={h} href={h}>
+      </header>
+      <div
+        className={`fixed inset-0 z-[80] lg:hidden ${menu ? 'pointer-events-auto' : 'pointer-events-none'}`}
+      >
+        <button
+          aria-label="Close menu"
+          onClick={() => setMenu(false)}
+          className={`absolute inset-0 bg-black/45 transition-opacity ${menu ? 'opacity-100' : 'opacity-0'}`}
+        />
+        <aside
+          className={`absolute left-0 top-0 h-[100dvh] w-[86%] max-w-sm bg-ivory p-6 flex flex-col transition-transform duration-300 ${menu ? 'translate-x-0' : '-translate-x-full'}`}
+        >
+          <div className="flex items-center justify-between border-b border-black/10 pb-5">
+            <b className="display text-2xl tracking-[.18em]">SPHINX</b>
+            <button
+              onClick={() => setMenu(false)}
+              className="w-11 h-11 grid place-items-center"
+              aria-label="Close menu"
+            >
+              <X />
+            </button>
+          </div>
+          <nav className="grid py-7 divide-y divide-black/10 overflow-auto">
+            {visibleNav.map(([n, h], index) => (
+              <Link
+                onClick={() => setMenu(false)}
+                key={`${h}-${index}`}
+                href={h}
+                className={`py-4 display text-2xl ${pathname === h ? 'text-brown' : ''}`}
+              >
                 {n}
               </Link>
             ))}
           </nav>
-        )}
-      </header>
+          <div className="mt-auto border-t border-black/10 pt-5 flex justify-between text-xs">
+            <Link href="/contact" onClick={() => setMenu(false)}>
+              Контакты
+            </Link>
+            <a href={`https://instagram.com/sphinx.store`}>Instagram</a>
+          </div>
+        </aside>
+      </div>
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }
 export function Footer() {
   const { settings } = useCatalog();
+  const telegram = settings.telegram || TELEGRAM_USERNAME;
   return (
-    <footer className="bg-ink text-white mt-24">
-      <div className="container-x py-12 sm:py-16 grid md:grid-cols-3 gap-8 sm:gap-10">
+    <footer className="bg-ink text-white mt-16 sm:mt-24">
+      <div className="container-x py-12 sm:py-16 grid grid-cols-2 lg:grid-cols-4 gap-9 sm:gap-12">
         <div>
           <div className="display text-3xl tracking-[.2em]">{settings.brand || 'SPHINX'}</div>
           <div className="eyebrow mt-2 text-white/50">{settings.tagline || 'The Guardian'}</div>
+          <p className="text-xs leading-6 text-white/55 mt-5 max-w-xs col-span-2">
+            Современная одежда, вдохновлённая культурой и наследием Египта.
+          </p>
         </div>
-        <p className="text-sm text-white/60 max-w-sm">
-          Современная одежда, вдохновлённая культурой и наследием Египта.
-        </p>
-        <div className="md:text-right text-sm flex flex-col sm:flex-row md:justify-end flex-wrap gap-x-5 gap-y-3">
+        <div className="text-sm grid gap-3">
+          <b className="text-[10px] tracking-widest uppercase text-white/45">Навигация</b>
           <Link href="/about">О бренде</Link>
           <Link href="/contact">Контакты</Link>
+          <Link href="/shop">Магазин</Link>
+        </div>
+        <div className="text-sm grid gap-3">
+          <b className="text-[10px] tracking-widest uppercase text-white/45">Информация</b>
           <Link href="/privacy">Конфиденциальность</Link>
           <Link href="/returns">Возврат и обмен</Link>
           <Link href="/terms">Условия</Link>
           <Link href="/legal-contact">Данные продавца</Link>
         </div>
+        <div className="text-sm grid gap-3 content-start">
+          <b className="text-[10px] tracking-widest uppercase text-white/45">Мы на связи</b>
+          <a href="https://instagram.com/sphinx.store" target="_blank" rel="noreferrer">
+            Instagram · @sphinx.store
+          </a>
+          <a href={`https://t.me/${telegram}`} target="_blank" rel="noreferrer">
+            Telegram · @{telegram}
+          </a>
+        </div>
+      </div>
+      <div className="container-x border-t border-white/10 py-5 flex flex-wrap justify-between gap-2 text-[10px] text-white/40">
+        <span>© 2026 SPHINX</span>
+        <span>THE GUARDIAN</span>
       </div>
     </footer>
   );

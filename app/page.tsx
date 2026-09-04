@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FeaturedProductGrid, ProductGrid, useCatalog } from '@/features/catalog';
+import { ProductGrid, useCatalog } from '@/features/catalog';
 import { TELEGRAM_USERNAME } from '@/config/site';
 import { BrandWordmark } from '@/components/ui/brand-wordmark';
 import { useLanguage } from '@/features/i18n';
@@ -19,6 +19,23 @@ export default function Home() {
   const bannerSubtitle =
     language === 'en' && banner?.subtitleEn ? banner.subtitleEn : banner?.subtitle;
   const bannerCta = language === 'en' && banner?.ctaTextEn ? banner.ctaTextEn : banner?.ctaText;
+  const featuredCollection = collections.find(
+    (collection) => collection.active && collection.status !== 'coming-soon',
+  );
+  const featuredCollectionName =
+    language === 'en' && featuredCollection?.nameEn
+      ? featuredCollection.nameEn
+      : featuredCollection?.name;
+  const featuredCollectionDescription =
+    language === 'en' && featuredCollection?.descriptionEn
+      ? featuredCollection.descriptionEn
+      : featuredCollection?.description;
+  const latestProducts = [...products]
+    .filter((product) =>
+      categories.some((category) => category.slug === product.category && category.active),
+    )
+    .sort((a, b) => Number(b.isNew) - Number(a.isNew))
+    .slice(0, 4);
   return (
     <main>
       <section className="min-h-[78vh] bg-sand relative overflow-hidden flex items-end">
@@ -64,59 +81,76 @@ export default function Home() {
           </div>
         </div>
       </section>
-      {collections
-        .filter((collection) => collection.active)
-        .map((collection) => {
-          const collectionProducts = products.filter(
-            (product) =>
-              collection.productIds.includes(product.id) &&
-              categories.some((category) => category.slug === product.category && category.active),
-          );
-          const collectionName =
-            language === 'en' && collection.nameEn ? collection.nameEn : collection.name;
-          const collectionDescription =
-            language === 'en' && collection.descriptionEn
-              ? collection.descriptionEn
-              : collection.description;
-          if (collection.status === 'coming-soon') {
-            return (
-              <section className="container-x pb-24" key={collection.id}>
-                <div className="relative min-h-80 overflow-hidden bg-sand grid place-items-center text-white">
-                  {collection.image && (
-                    <Image
-                      src={collection.image}
-                      alt={collectionName}
-                      fill
-                      className="object-cover scale-110 blur-xl brightness-[.4] category-unavailable-image"
-                    />
-                  )}
-                  <div className="relative text-center p-8">
-                    <h2 className="display text-4xl">{collectionName}</h2>
-                    {collectionDescription && (
-                      <p className="mt-3 text-white/75">{collectionDescription}</p>
-                    )}
-                    <p className="display text-2xl mt-5">
-                      {language === 'en' ? 'Coming soon' : 'Скоро в продаже'}
-                    </p>
-                  </div>
-                </div>
-              </section>
-            );
-          }
-          if (!collectionProducts.length) return null;
-          return (
-            <section className="container-x pb-24" key={collection.id}>
-              <p className="eyebrow text-brown">Коллекция</p>
-              <h2 className="display text-4xl mt-3">{collectionName}</h2>
-              {collectionDescription && (
-                <p className="text-muted mt-3 mb-10">{collectionDescription}</p>
-              )}
-              {!collectionDescription && <div className="mb-10" />}
-              <ProductGrid products={collectionProducts} />
-            </section>
-          );
-        })}
-      <section className="container-x py-24">
+      <section className="container-x py-14 sm:py-20 grid sm:grid-cols-3 border-b border-black/10">
+        {(language === 'en'
+          ? [
+              ['01', 'Heritage', 'Egyptian symbols reimagined for the modern wardrobe.'],
+              ['02', 'Material', 'Heavy fabrics, a precise fit and attention to every detail.'],
+              ['03', 'Character', 'Quiet streetwear with a distinctive point of view.'],
+            ]
+          : [
+              ['01', 'Наследие', 'Символы Египта, переосмысленные для современного гардероба.'],
+              ['02', 'Материал', 'Плотные ткани, точная посадка и внимание к каждой детали.'],
+              ['03', 'Характер', 'Лаконичный streetwear, который говорит без лишнего шума.'],
+            ]
+        ).map(([number, title, text]) => (
+          <div
+            key={number}
+            className="py-5 sm:px-6 first:pl-0 border-b sm:border-b-0 sm:border-r last:border-0 border-black/10"
+          >
+            <span className="eyebrow text-brown">{number}</span>
+            <h2 className="display text-2xl mt-4">{title}</h2>
+            <p className="text-sm text-muted leading-6 mt-3">{text}</p>
+          </div>
+        ))}
+      </section>
+      <section className="container-x py-14 sm:py-24">
+        <div className="grid lg:grid-cols-[1.25fr_.75fr] bg-ink text-white min-h-[520px]">
+          <div className="relative min-h-[420px] lg:min-h-full overflow-hidden">
+            <Image
+              src={
+                featuredCollection?.image ||
+                '/assets/collections/4e50fc17-9a15-4706-b585-ba4a4d020e1d.png'
+              }
+              alt={featuredCollectionName || 'SPHINX collection'}
+              fill
+              className="object-cover transition-transform duration-1000 hover:scale-[1.025]"
+            />
+          </div>
+          <div className="p-7 sm:p-12 flex flex-col justify-center">
+            <p className="eyebrow text-gold">
+              {language === 'en' ? 'Featured collection' : 'Избранная коллекция'}
+            </p>
+            <h2 className="display text-4xl sm:text-5xl mt-5">
+              {featuredCollectionName || 'THE GUARDIAN'}
+            </h2>
+            <p className="text-white/60 leading-7 mt-6">
+              {featuredCollectionDescription ||
+                'Современная форма, древние символы и одежда, созданная для настоящего.'}
+            </p>
+            <Link href="/shop" className="btn btn-light mt-8 w-fit">
+              {language === 'en' ? 'Explore collection' : 'Смотреть коллекцию'}
+            </Link>
+          </div>
+        </div>
+      </section>
+      <section className="container-x pb-14 sm:pb-24">
+        <div className="flex justify-between items-end mb-8 sm:mb-10">
+          <div>
+            <p className="eyebrow text-brown">
+              {language === 'en' ? 'Latest release' : 'Последний выпуск'}
+            </p>
+            <h2 className="display text-4xl mt-3">
+              {language === 'en' ? 'The new drop' : 'Новый дроп'}
+            </h2>
+          </div>
+          <Link href="/shop?sort=new" className="text-xs border-b border-ink pb-1">
+            {language === 'en' ? 'View all' : 'Смотреть все'}
+          </Link>
+        </div>
+        <ProductGrid products={latestProducts} />
+      </section>
+      <section className="container-x py-14 sm:py-24">
         <div className="flex justify-between items-end mb-10">
           <div>
             <p className="eyebrow text-brown">Обзор</p>
@@ -129,10 +163,24 @@ export default function Home() {
           ))}
         </div>
       </section>
-      <section className="container-x pb-24">
-        <p className="eyebrow text-brown">Избранные модели</p>
-        <h2 className="display text-4xl mt-3 mb-10">Избранное</h2>
-        <FeaturedProductGrid limit={8} />
+      <section className="container-x pb-14 sm:pb-24 grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+        {[
+          '/assets/collections/00fcd2fc-5398-4983-bd8e-b77eafb990c7.png',
+          '/assets/collections/4e50fc17-9a15-4706-b585-ba4a4d020e1d.png',
+          '/assets/collections/129c8818-05a8-41b5-ac06-3b28fb84925a.png',
+        ].map((src, index) => (
+          <div
+            key={src}
+            className={`relative overflow-hidden bg-sand ${index === 2 ? 'col-span-2 lg:col-span-1 aspect-[16/10] lg:aspect-[4/5]' : 'aspect-[4/5]'}`}
+          >
+            <Image
+              src={src}
+              alt="SPHINX editorial"
+              fill
+              className="object-cover transition-transform duration-700 hover:scale-[1.03]"
+            />
+          </div>
+        ))}
       </section>
       <section className="bg-ink text-white">
         <div className="container-x py-24 grid md:grid-cols-2 gap-16 items-center">
@@ -154,6 +202,44 @@ export default function Home() {
               О бренде
             </Link>
           </div>
+        </div>
+      </section>
+      <section className="container-x py-14 sm:py-24">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-8">
+          <div>
+            <p className="eyebrow text-brown">Instagram</p>
+            <h2 className="display text-4xl mt-3">@sphinx.store</h2>
+          </div>
+          <a
+            href="https://instagram.com/sphinx.store"
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs border-b border-ink pb-1 w-fit"
+          >
+            {language === 'en' ? 'Follow the story' : 'Следить за брендом'}
+          </a>
+        </div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          {[
+            '/assets/collections/840ae48b-a0ce-46b3-8d2d-13cf80ff5569.png',
+            '/assets/collections/b5c75d38-fa88-4d89-866c-872d28f33a5c.png',
+            '/assets/collections/ee60f5f3-50c6-4923-8ca3-3ffcd530ac19.png',
+          ].map((src) => (
+            <a
+              href="https://instagram.com/sphinx.store"
+              target="_blank"
+              rel="noreferrer"
+              key={src}
+              className="relative aspect-square overflow-hidden bg-sand"
+            >
+              <Image
+                src={src}
+                alt="SPHINX Instagram"
+                fill
+                className="object-cover transition-transform duration-700 hover:scale-105"
+              />
+            </a>
+          ))}
         </div>
       </section>
       <section className="container-x py-24 text-center">

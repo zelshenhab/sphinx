@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Grid2X2, Rows2, Search, SlidersHorizontal, X } from 'lucide-react';
 import { ProductGrid, ProductGridSkeleton, useCatalog } from '@/features/catalog';
 import { useLanguage } from '@/features/i18n';
 export default function Shop() {
@@ -17,6 +17,8 @@ export default function Shop() {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [mobileColumns, setMobileColumns] = useState<1 | 2>(2);
   const availableCategories = categories.filter((category) => category.active);
   const sizes = Array.from(
     new Set([
@@ -108,6 +110,14 @@ export default function Shop() {
     setMaxPrice('');
     setInStockOnly(false);
   };
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [filtersOpen]);
   return (
     <main className="container-x py-16">
       {banner && (
@@ -165,11 +175,18 @@ export default function Shop() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-5 mb-3">
+        <div className="hidden md:flex items-center gap-2 mt-5 mb-3">
           <SlidersHorizontal size={16} />
           <b className="text-sm">{language === 'en' ? 'Filters' : 'Фильтры'}</b>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+        <button
+          onClick={() => setFiltersOpen(true)}
+          className="md:hidden btn border border-ink w-full mt-4 gap-2"
+        >
+          <SlidersHorizontal size={16} />
+          {language === 'en' ? 'Open filters' : 'Открыть фильтры'}
+        </button>
+        <div className="hidden md:grid md:grid-cols-3 xl:grid-cols-6 gap-3">
           <select className="field" value={cat} onChange={(e) => setCat(e.target.value)}>
             <option value="all">{language === 'en' ? 'All categories' : 'Все категории'}</option>
             {availableCategories.map((category) => (
@@ -218,33 +235,170 @@ export default function Shop() {
             />
             {language === 'en' ? 'In stock' : 'В наличии'}
           </label>
-          <select className="field" value={sort} onChange={(e) => setSort(e.target.value)}>
-            <option value="new">{language === 'en' ? 'New arrivals' : 'Новинки'}</option>
-            <option value="asc">
-              {language === 'en' ? 'Price: Low to high' : 'Цена: по возрастанию'}
-            </option>
-            <option value="desc">
-              {language === 'en' ? 'Price: High to low' : 'Цена: по убыванию'}
-            </option>
-          </select>
         </div>
-        <div className="flex justify-between items-center gap-4 mt-5 text-sm">
+        {hasFilters && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {query && <FilterChip label={`“${query}”`} clear={() => setQuery('')} />}
+            {cat !== 'all' && (
+              <FilterChip
+                label={availableCategories.find((item) => item.slug === cat)?.name ?? cat}
+                clear={() => setCat('all')}
+              />
+            )}
+            {size !== 'all' && <FilterChip label={size} clear={() => setSize('all')} />}
+            {color !== 'all' && <FilterChip label={color} clear={() => setColor('all')} />}
+            {(minPrice || maxPrice) && (
+              <FilterChip
+                label={`${minPrice || '0'}–${maxPrice || '∞'} ₽`}
+                clear={() => {
+                  setMinPrice('');
+                  setMaxPrice('');
+                }}
+              />
+            )}
+            {inStockOnly && (
+              <FilterChip
+                label={language === 'en' ? 'In stock' : 'В наличии'}
+                clear={() => setInStockOnly(false)}
+              />
+            )}
+          </div>
+        )}
+        <div className="sticky top-16 sm:top-20 z-30 bg-ivory/95 backdrop-blur flex justify-between items-center gap-3 mt-5 py-3 text-sm">
           <p className="text-muted">
             {language === 'en'
               ? `${list.length} products found`
               : `Найдено товаров: ${list.length}`}
           </p>
-          {hasFilters && (
-            <button onClick={resetFilters} className="border-b border-ink">
-              {language === 'en' ? 'Clear filters' : 'Сбросить фильтры'}
-            </button>
-          )}
+          <div className="flex items-center gap-2 ml-auto">
+            <select
+              className="bg-transparent text-xs max-w-36"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+            >
+              <option value="new">{language === 'en' ? 'Newest' : 'Новинки'}</option>
+              <option value="asc">{language === 'en' ? 'Price ↑' : 'Цена ↑'}</option>
+              <option value="desc">{language === 'en' ? 'Price ↓' : 'Цена ↓'}</option>
+            </select>
+            <div className="flex md:hidden border border-black/15">
+              <button
+                aria-label="One column"
+                onClick={() => setMobileColumns(1)}
+                className={`p-2 ${mobileColumns === 1 ? 'bg-ink text-white' : ''}`}
+              >
+                <Rows2 size={15} />
+              </button>
+              <button
+                aria-label="Two columns"
+                onClick={() => setMobileColumns(2)}
+                className={`p-2 ${mobileColumns === 2 ? 'bg-ink text-white' : ''}`}
+              >
+                <Grid2X2 size={15} />
+              </button>
+            </div>
+            {hasFilters && (
+              <button
+                onClick={resetFilters}
+                className="hidden sm:block border-b border-ink whitespace-nowrap"
+              >
+                {language === 'en' ? 'Clear' : 'Сбросить'}
+              </button>
+            )}
+          </div>
         </div>
       </section>
+      <div
+        className={`fixed inset-0 z-[90] md:hidden ${filtersOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
+      >
+        <button
+          aria-label="Close filters"
+          onClick={() => setFiltersOpen(false)}
+          className={`absolute inset-0 bg-black/40 transition-opacity ${filtersOpen ? 'opacity-100' : 'opacity-0'}`}
+        />
+        <aside
+          className={`absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-auto bg-ivory rounded-t-3xl p-5 transition-transform duration-300 ${filtersOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        >
+          <div className="flex justify-between items-center border-b pb-4">
+            <h2 className="display text-2xl">{language === 'en' ? 'Filters' : 'Фильтры'}</h2>
+            <button
+              onClick={() => setFiltersOpen(false)}
+              className="w-11 h-11 grid place-items-center"
+            >
+              <X />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3 py-5">
+            <select
+              className="field col-span-2"
+              value={cat}
+              onChange={(event) => setCat(event.target.value)}
+            >
+              <option value="all">{language === 'en' ? 'All categories' : 'Все категории'}</option>
+              {availableCategories.map((category) => (
+                <option key={category.id} value={category.slug}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="field"
+              value={size}
+              onChange={(event) => setSize(event.target.value)}
+            >
+              <option value="all">{language === 'en' ? 'All sizes' : 'Все размеры'}</option>
+              {sizes.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+            <select
+              className="field"
+              value={color}
+              onChange={(event) => setColor(event.target.value)}
+            >
+              <option value="all">{language === 'en' ? 'All colors' : 'Все цвета'}</option>
+              {colors.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+            <input
+              className="field"
+              type="number"
+              min="0"
+              value={minPrice}
+              onChange={(event) => setMinPrice(event.target.value)}
+              placeholder={language === 'en' ? 'Min price' : 'Цена от'}
+            />
+            <input
+              className="field"
+              type="number"
+              min="0"
+              value={maxPrice}
+              onChange={(event) => setMaxPrice(event.target.value)}
+              placeholder={language === 'en' ? 'Max price' : 'Цена до'}
+            />
+            <label className="field col-span-2 flex gap-3 items-center">
+              <input
+                type="checkbox"
+                checked={inStockOnly}
+                onChange={(event) => setInStockOnly(event.target.checked)}
+              />
+              {language === 'en' ? 'In stock only' : 'Только в наличии'}
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={resetFilters} className="btn border border-ink">
+              {language === 'en' ? 'Clear' : 'Сбросить'}
+            </button>
+            <button onClick={() => setFiltersOpen(false)} className="btn btn-dark">
+              {language === 'en' ? `Show ${list.length}` : `Показать ${list.length}`}
+            </button>
+          </div>
+        </aside>
+      </div>
       {loading ? (
         <ProductGridSkeleton />
       ) : list.length ? (
-        <ProductGrid products={list} />
+        <ProductGrid products={list} mobileColumns={mobileColumns} />
       ) : (
         <div className="py-20 text-center border border-black/10 bg-white">
           <p className="display text-2xl">
@@ -256,5 +410,16 @@ export default function Shop() {
         </div>
       )}
     </main>
+  );
+}
+function FilterChip({ label, clear }: { label: string; clear: () => void }) {
+  return (
+    <button
+      onClick={clear}
+      className="inline-flex items-center gap-1.5 bg-white border border-black/10 px-3 py-1.5 text-[10px]"
+    >
+      {label}
+      <X size={12} />
+    </button>
   );
 }
