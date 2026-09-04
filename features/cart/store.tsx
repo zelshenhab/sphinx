@@ -185,7 +185,9 @@ export function Header() {
             ))}
           </nav>
           <div className="flex items-center gap-3 sm:gap-4">
-            <LanguageSwitch />
+            <div className="hidden sm:block">
+              <LanguageSwitch />
+            </div>
             <button onClick={() => setSearchOpen(true)} aria-label="Search" className="p-1">
               <Search size={18} />
             </button>
@@ -240,11 +242,17 @@ export function Header() {
               </Link>
             ))}
           </nav>
-          <div className="mt-auto border-t border-black/10 pt-5 flex justify-between text-xs">
-            <Link href="/contact" onClick={() => setMenu(false)}>
-              Контакты
-            </Link>
-            <a href={`https://instagram.com/sphinx.store`}>Instagram</a>
+          <div className="mt-auto border-t border-black/10 pt-5">
+            <div className="flex items-center justify-between mb-5">
+              <span className="text-[10px] uppercase tracking-widest text-muted">Language</span>
+              <LanguageSwitch />
+            </div>
+            <div className="flex justify-between text-xs">
+              <Link href="/contact" onClick={() => setMenu(false)}>
+                Контакты
+              </Link>
+              <a href={`https://instagram.com/sphinx.store`}>Instagram</a>
+            </div>
           </div>
         </aside>
       </div>
