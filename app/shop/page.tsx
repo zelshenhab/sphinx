@@ -152,7 +152,7 @@ export default function Shop() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="field pl-11 pr-10"
+            className="field search-field"
             placeholder={language === 'en' ? 'Search products...' : 'Поиск товаров...'}
           />
           {query && (

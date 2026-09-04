@@ -81,6 +81,10 @@ button {
   border-color: #8b6b4a;
   box-shadow: 0 0 0 3px rgb(181 154 112/0.12);
 }
+.search-field {
+  padding-left: 48px;
+  padding-right: 44px;
+}
 .admin-card {
   background: white;
   border: 1px solid #e8e1d5;
