@@ -374,9 +374,17 @@ function ProductDetails({ product: p }: { product: Product }) {
           onClick={() => setZoomed(false)}
         >
           <button
+            type="button"
             aria-label="Close image"
-            className="absolute top-5 right-5 text-white p-2"
-            onClick={() => setZoomed(false)}
+            className="absolute z-20 top-4 right-4 md:top-5 md:right-5 w-12 h-12 rounded-full bg-black/60 text-white grid place-items-center touch-manipulation"
+            onClick={(event) => {
+              event.stopPropagation();
+              setZoomed(false);
+            }}
+            onPointerUp={(event) => {
+              event.stopPropagation();
+              setZoomed(false);
+            }}
           >
             <X />
           </button>
