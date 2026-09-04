@@ -38,6 +38,10 @@ export function ProductCard({ product }: { product: Product }) {
   const quickAddColor = availableVariant?.color ?? galleryColor ?? product.colors[0];
   const quickAddSize = availableVariant?.size ?? product.sizes[0];
   const lowStock = totalStock !== undefined && totalStock > 0 && totalStock <= 10;
+  const discountPercent =
+    product.oldPrice && product.oldPrice > product.price
+      ? Math.round((1 - product.price / product.oldPrice) * 100)
+      : 0;
   const availableSwatches = storefrontColors.filter((swatch) =>
     product.colors.some((color) =>
       swatch.aliases.some((alias) => alias === color.trim().toLowerCase()),
@@ -60,6 +64,11 @@ export function ProductCard({ product }: { product: Product }) {
             {product.isSale ? 'SALE' : 'NEW'}
           </span>
         )}
+        {discountPercent > 0 && (
+          <span className="absolute top-3 right-3 bg-red-700 text-white px-2.5 py-1 text-[9px] tracking-wider">
+            −{discountPercent}%
+          </span>
+        )}
         {lowStock && (
           <span className="absolute bottom-3 left-3 bg-ink text-white px-3 py-1.5 text-[9px] tracking-wider">
             {language === 'en' ? `Only ${totalStock} left` : `Осталось ${totalStock} шт.`}
@@ -73,20 +82,20 @@ export function ProductCard({ product }: { product: Product }) {
       </Link>
       <div className="pt-4">
         <Link href={`/product/${product.slug}`}>
-          <h3 className="text-sm">{product.name}</h3>
+          <h3 className="text-sm line-clamp-2 min-h-10">{product.name}</h3>
         </Link>
-        <div className="flex justify-between items-end mt-2">
-          <p className="text-sm">
-            <b>{formatPrice(product.price)}</b>
-            {product.oldPrice && <s className="text-muted ml-2">{formatPrice(product.oldPrice)}</s>}
-          </p>
-          <button
-            disabled={totalStock === 0 || !quickAddSize}
-            onClick={() => add(product, quickAddColor, quickAddSize)}
-            className="text-[10px] uppercase tracking-wider border-b border-black disabled:opacity-35 disabled:cursor-not-allowed"
-          >
-            {language === 'en' ? 'Quick add' : 'Быстро добавить'}
-          </button>
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-2 min-h-8">
+          <b className={discountPercent > 0 ? 'text-sm text-red-700' : 'text-sm'}>
+            {formatPrice(product.price)}
+          </b>
+          {product.oldPrice && (
+            <s className="text-muted text-xs whitespace-nowrap">{formatPrice(product.oldPrice)}</s>
+          )}
+          {discountPercent > 0 && (
+            <span className="text-[9px] font-medium text-red-700 whitespace-nowrap">
+              {language === 'en' ? 'You save' : 'Скидка'} {discountPercent}%
+            </span>
+          )}
         </div>
         <div className="flex gap-2 mt-3">
           {availableSwatches.map((swatch) => (
@@ -99,6 +108,13 @@ export function ProductCard({ product }: { product: Product }) {
             />
           ))}
         </div>
+        <button
+          disabled={totalStock === 0 || !quickAddSize}
+          onClick={() => add(product, quickAddColor, quickAddSize)}
+          className="mt-3 w-full min-h-10 px-2 border border-black text-[9px] sm:text-[10px] uppercase tracking-[.08em] whitespace-nowrap hover:bg-ink hover:text-white disabled:opacity-35 disabled:cursor-not-allowed"
+        >
+          {language === 'en' ? 'Quick add' : 'Быстро добавить'}
+        </button>
       </div>
     </article>
   );
