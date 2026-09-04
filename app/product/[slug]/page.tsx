@@ -2,13 +2,12 @@
 import { use, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Minus, Plus, Sparkles, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-react';
 import { ProductGrid, useCatalog } from '@/features/catalog';
 import { formatPrice, getColorSwatch, TELEGRAM_USERNAME } from '@/config/site';
 import { useCart } from '@/features/cart';
 import type { Product } from '@/types';
 import { useLanguage } from '@/features/i18n';
-import { TryOnDialog } from '@/features/try-on';
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const { categories, products, loading } = useCatalog();
@@ -60,7 +59,6 @@ function ProductDetails({ product: p }: { product: Product }) {
   const [q, setQ] = useState(1);
   const [image, setImage] = useState(p.colorImages?.[defaultColor]?.[0] || p.images[0]);
   const [zoomed, setZoomed] = useState(false);
-  const [tryOnOpen, setTryOnOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const ignoreGalleryClick = useRef(false);
   const purchaseActionsRef = useRef<HTMLDivElement>(null);
@@ -385,14 +383,6 @@ function ProductDetails({ product: p }: { product: Product }) {
                 : tr('Добавить в корзину', 'Add to cart')}
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setTryOnOpen(true)}
-            className="btn w-full mt-3 border border-gold bg-sand/35 gap-2 hover:bg-sand"
-          >
-            <Sparkles size={17} className="text-gold" />
-            {tr('Примерить с помощью AI', 'Try on with AI')}
-          </button>
           <a
             href={`https://t.me/${TELEGRAM_USERNAME}`}
             className="btn border border-ink w-full mt-3"
@@ -467,12 +457,6 @@ function ProductDetails({ product: p }: { product: Product }) {
           </div>
         </div>
       )}
-      <TryOnDialog
-        open={tryOnOpen}
-        onClose={() => setTryOnOpen(false)}
-        garmentImage={displayedImage}
-        productName={p.name}
-      />
       {relatedProducts.length > 0 && (
         <section className="container-x pt-10 pb-24 border-t border-black/10">
           <p className="eyebrow text-brown">{tr('Рекомендуем', 'Recommended')}</p>
