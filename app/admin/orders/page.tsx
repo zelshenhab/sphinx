@@ -69,7 +69,7 @@ export default function Orders() {
               <span className="sr-only">Поиск заказов</span>
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
-                className="field pl-10"
+                className="field search-field"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Имя, телефон, номер"

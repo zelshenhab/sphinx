@@ -391,7 +391,7 @@ export default function Products() {
             className="absolute left-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
           />
           <input
-            className="field pl-11 bg-white"
+            className="field search-field bg-white"
             value={productQuery}
             onChange={(event) => setProductQuery(event.target.value)}
             placeholder="Поиск по названию или slug"
