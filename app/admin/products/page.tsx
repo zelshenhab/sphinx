@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import {
   createProduct,
   deleteProduct,
@@ -84,6 +85,9 @@ export default function Products() {
   );
   const [galleryColor, setGalleryColor] = useState('Black');
   const [galleryUploading, setGalleryUploading] = useState(false);
+  const [productQuery, setProductQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [stockFilter, setStockFilter] = useState('all');
   const missingSeedProducts = seed.filter(
     (originalProduct) =>
       !(remoteProducts ?? list).some((product) => product.slug === originalProduct.slug),
@@ -114,22 +118,35 @@ export default function Products() {
       ...selectedSizes,
     ]),
   );
+  const filteredList = list.filter((product) => {
+    const matchesQuery = `${product.name} ${product.slug}`
+      .toLowerCase()
+      .includes(productQuery.trim().toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
+    const stock = product.stockQuantity ?? 20;
+    const matchesStock =
+      stockFilter === 'all' ||
+      (stockFilter === 'available' && stock > 0) ||
+      (stockFilter === 'low' && stock > 0 && stock <= 10) ||
+      (stockFilter === 'out' && stock === 0);
+    return matchesQuery && matchesCategory && matchesStock;
+  });
   const categoryGroups = [
     ...categories.map((category) => ({
       slug: category.slug,
       name: category.name,
-      products: list.filter((product) => product.category === category.slug),
+      products: filteredList.filter((product) => product.category === category.slug),
     })),
     ...Array.from(
       new Set(
-        list
+        filteredList
           .map((product) => product.category)
           .filter((slug) => !categories.some((category) => category.slug === slug)),
       ),
     ).map((slug) => ({
       slug,
       name: slug,
-      products: list.filter((product) => product.category === slug),
+      products: filteredList.filter((product) => product.category === slug),
     })),
   ].filter((group) => group.products.length > 0);
   const toggleSize = (size: string) => {
@@ -365,6 +382,65 @@ export default function Products() {
             {open ? 'Закрыть' : 'Добавить товар'}
           </button>
         </div>
+      </div>
+      <div className="grid md:grid-cols-[minmax(0,1fr)_200px_180px_auto] gap-3 mb-7 p-3 sm:p-4 bg-sand/50 border border-black/10">
+        <label className="relative">
+          <span className="sr-only">Поиск товаров</span>
+          <Search
+            size={17}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+          />
+          <input
+            className="field pl-11 bg-white"
+            value={productQuery}
+            onChange={(event) => setProductQuery(event.target.value)}
+            placeholder="Поиск по названию или slug"
+          />
+        </label>
+        <label>
+          <span className="sr-only">Категория</span>
+          <select
+            className="field bg-white"
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+          >
+            <option value="all">Все категории</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.slug}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className="sr-only">Наличие</span>
+          <select
+            className="field bg-white"
+            value={stockFilter}
+            onChange={(event) => setStockFilter(event.target.value)}
+          >
+            <option value="all">Любой остаток</option>
+            <option value="available">В наличии</option>
+            <option value="low">Мало (1–10)</option>
+            <option value="out">Нет в наличии</option>
+          </select>
+        </label>
+        {(productQuery || categoryFilter !== 'all' || stockFilter !== 'all') && (
+          <button
+            type="button"
+            onClick={() => {
+              setProductQuery('');
+              setCategoryFilter('all');
+              setStockFilter('all');
+            }}
+            className="btn border border-black/15 bg-white"
+          >
+            <X size={15} /> Сбросить
+          </button>
+        )}
+        <p className="md:col-span-full flex items-center gap-2 text-xs text-muted">
+          <SlidersHorizontal size={14} /> Показано {filteredList.length} из {list.length}
+        </p>
       </div>
       {open && (
         <form onSubmit={create} className="bg-sand/60 border border-black/10 p-3 sm:p-5 mb-7">
@@ -762,6 +838,23 @@ export default function Products() {
             </div>
           </section>
         ))}
+        {!categoryGroups.length && (
+          <div className="border border-dashed border-black/20 py-12 px-5 text-center">
+            <Search className="mx-auto text-muted" size={24} />
+            <p className="text-sm mt-3">Товары по выбранным фильтрам не найдены.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setProductQuery('');
+                setCategoryFilter('all');
+                setStockFilter('all');
+              }}
+              className="text-xs underline mt-2"
+            >
+              Сбросить фильтры
+            </button>
+          </div>
+        )}
         {categoryGroups.length === 0 && (
           <p className="py-10 text-center text-sm text-muted">Нет товаров</p>
         )}
