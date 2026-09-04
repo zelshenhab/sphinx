@@ -1,5 +1,5 @@
 'use client';
-import { use, useState } from 'react';
+import { use, useRef, useState } from 'react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-react';
@@ -57,9 +57,12 @@ function ProductDetails({ product: p }: { product: Product }) {
   const [q, setQ] = useState(1);
   const [image, setImage] = useState(p.colorImages?.[defaultColor]?.[0] || p.images[0]);
   const [zoomed, setZoomed] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const ignoreGalleryClick = useRef(false);
   const { add } = useCart();
   const { categories, products, settings } = useCatalog();
   const { language } = useLanguage();
+  const tr = (ru: string, en: string) => (language === 'en' ? en : ru);
   const selectedVariantStock = size ? stockForVariant(color, size) : 0;
   const relatedProducts = products
     .filter(
@@ -102,6 +105,18 @@ function ProductDetails({ product: p }: { product: Product }) {
     const nextIndex = (currentImageIndex + direction + currentImages.length) % currentImages.length;
     setImage(currentImages[nextIndex]);
   };
+  const startSwipe = (clientX: number) => {
+    touchStartX.current = clientX;
+    ignoreGalleryClick.current = false;
+  };
+  const endSwipe = (clientX: number) => {
+    if (touchStartX.current === null) return;
+    const distance = clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(distance) < 45) return;
+    ignoreGalleryClick.current = true;
+    navigateImage(distance > 0 ? -1 : 1);
+  };
   const selectColor = (nextColor: string) => {
     setColor(nextColor);
     setImage(p.colorImages?.[nextColor]?.[0] || p.images[0]);
@@ -111,10 +126,15 @@ function ProductDetails({ product: p }: { product: Product }) {
   };
   return (
     <>
-      <main className="container-x py-6 sm:py-10 grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-20">
+      <main className="container-x py-6 sm:py-10 pb-28 lg:pb-10 grid lg:grid-cols-[minmax(0,1.15fr)_minmax(380px,.85fr)] gap-8 sm:gap-12 lg:gap-16">
         <div className="grid md:grid-cols-[96px_minmax(0,1fr)] gap-3 items-start">
           <div
-            onClick={() => setZoomed(true)}
+            onClick={() => {
+              if (!ignoreGalleryClick.current) setZoomed(true);
+              ignoreGalleryClick.current = false;
+            }}
+            onTouchStart={(event) => startSwipe(event.touches[0].clientX)}
+            onTouchEnd={(event) => endSwipe(event.changedTouches[0].clientX)}
             className="relative aspect-[4/5] bg-sand overflow-hidden group/gallery md:col-start-2 md:row-start-1 cursor-zoom-in"
           >
             <Image
@@ -152,6 +172,9 @@ function ProductDetails({ product: p }: { product: Product }) {
                 <span className="absolute bottom-3 right-3 bg-black/55 text-white px-2.5 py-1 text-[10px] tracking-widest">
                   {currentImageIndex + 1} / {currentImages.length}
                 </span>
+                <span className="absolute bottom-3 left-3 bg-white/80 px-2.5 py-1 text-[9px] tracking-wider md:hidden">
+                  {tr('Смахните для просмотра', 'Swipe to browse')}
+                </span>
               </>
             )}
           </div>
@@ -187,7 +210,9 @@ function ProductDetails({ product: p }: { product: Product }) {
           ) : null}
           <p className="text-muted leading-7 mt-7">{p.description}</p>
           <div className="mt-9">
-            <b className="text-sm">Цвет: {color}</b>
+            <b className="text-sm">
+              {tr('Цвет', 'Color')}: {color}
+            </b>
             <div className="flex flex-wrap gap-2 mt-3">
               {allColors.map((c) => {
                 const available = isColorAvailable(c);
@@ -196,7 +221,7 @@ function ProductDetails({ product: p }: { product: Product }) {
                     disabled={!available}
                     onClick={() => selectColor(c)}
                     key={c}
-                    title={available ? c : `${c} — недоступен`}
+                    title={available ? c : `${c} — ${tr('недоступен', 'unavailable')}`}
                     className={`relative flex items-center gap-2 px-4 py-2 text-xs border active:scale-95 ${color === c && available ? 'border-ink bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-40 line-through bg-black/5'}`}
                   >
                     <span
@@ -208,10 +233,17 @@ function ProductDetails({ product: p }: { product: Product }) {
                 );
               })}
             </div>
-            <p className="text-[11px] text-muted mt-2">Зачёркнутые цвета сейчас недоступны</p>
+            <p className="text-[11px] text-muted mt-2">
+              {tr(
+                'Зачёркнутые цвета сейчас недоступны',
+                'Crossed-out colors are currently unavailable',
+              )}
+            </p>
           </div>
           <div className="mt-7">
-            <b className="text-sm">Размер: {size}</b>
+            <b className="text-sm">
+              {tr('Размер', 'Size')}: {size}
+            </b>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">
               {allSizes.map((s) => {
                 const remaining = stockForVariant(color, s);
@@ -224,7 +256,11 @@ function ProductDetails({ product: p }: { product: Product }) {
                       setQ((current) => Math.min(current, remaining));
                     }}
                     key={s}
-                    title={available ? `${s} — осталось ${remaining}` : `${s} — недоступен`}
+                    title={
+                      available
+                        ? `${s} — ${tr(`осталось ${remaining}`, `${remaining} left`)}`
+                        : `${s} — ${tr('недоступен', 'unavailable')}`
+                    }
                     className={`relative py-3 text-xs border transition-transform active:scale-95 ${size === s && available ? 'bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-35 line-through bg-black/5'}`}
                   >
                     {s}
@@ -242,17 +278,30 @@ function ProductDetails({ product: p }: { product: Product }) {
                   : `Осталось ${selectedVariantStock} шт.: ${color} / ${size}`}
               </p>
             )}
-            <p className="text-[11px] text-muted mt-2">Зачёркнутые размеры сейчас недоступны</p>
+            <p className="text-[11px] text-muted mt-2">
+              {tr(
+                'Зачёркнутые размеры сейчас недоступны',
+                'Crossed-out sizes are currently unavailable',
+              )}
+            </p>
             <details className="mt-4 border border-black/10 bg-white p-4">
-              <summary className="cursor-pointer text-sm font-medium">Таблица размеров</summary>
+              <summary className="cursor-pointer text-sm font-medium">
+                {tr('Таблица размеров', 'Size guide')}
+              </summary>
+              <p className="text-[11px] text-muted mt-3">
+                {tr(
+                  'Измерения указаны в сантиметрах. Для свободной посадки сравните их с любимой футболкой.',
+                  'Measurements are in centimeters. For a relaxed fit, compare them with your favorite T-shirt.',
+                )}
+              </p>
               <div className="overflow-x-auto mt-4">
                 <table className="w-full text-xs text-center min-w-[420px]">
                   <thead>
                     <tr>
-                      <th className="p-2 text-left">Размер</th>
-                      <th>Грудь</th>
-                      <th>Длина</th>
-                      <th>Рукав</th>
+                      <th className="p-2 text-left">{tr('Размер', 'Size')}</th>
+                      <th>{tr('Грудь, см', 'Chest, cm')}</th>
+                      <th>{tr('Длина, см', 'Length, cm')}</th>
+                      <th>{tr('Рукав, см', 'Sleeve, cm')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -264,14 +313,16 @@ function ProductDetails({ product: p }: { product: Product }) {
                       ['XL', '62', '75', '24'],
                       ['XXL', '65', '77', '25'],
                     ].map((row) => (
-                      <tr className="border-t" key={row[0]}>
+                      <tr
+                        className={`border-t ${size === row[0] ? 'bg-sand/70 font-medium' : ''}`}
+                        key={row[0]}
+                      >
                         {row.map((cell, index) => (
                           <td
                             className={`p-2 ${index === 0 ? 'text-left font-medium' : ''}`}
                             key={cell}
                           >
                             {cell}
-                            {index > 0 ? ' см' : ''}
                           </td>
                         ))}
                       </tr>
@@ -297,21 +348,23 @@ function ProductDetails({ product: p }: { product: Product }) {
               className="btn btn-dark flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {totalStock === 0 || selectedVariantStock === 0
-                ? 'Нет в наличии'
-                : 'Добавить в корзину'}
+                ? tr('Нет в наличии', 'Out of stock')
+                : tr('Добавить в корзину', 'Add to cart')}
             </button>
           </div>
           <a
             href={`https://t.me/${TELEGRAM_USERNAME}`}
             className="btn border border-ink w-full mt-3"
           >
-            Заказать в Telegram
+            {tr('Заказать в Telegram', 'Order via Telegram')}
           </a>
-          <div className="mt-10 border-t text-sm">
-            <Info n="Описание" v={p.description} />
-            <Info n="Состав" v={p.material} />
-            <Info n="Посадка" v={p.fit + (p.gsm ? ` · ${p.gsm}` : '')} />
-            <Info n="Доставка" v="По России курьерской службой. Бесплатно от 7 000 ₽." />
+          <div className="grid grid-cols-3 gap-2 mt-10">
+            <ProductFact label={tr('Состав', 'Material')} value={p.material} />
+            <ProductFact label={tr('Плотность', 'Weight')} value={p.gsm || '—'} />
+            <ProductFact label={tr('Посадка', 'Fit')} value={p.fit} />
+          </div>
+          <div className="mt-5 border-t text-sm">
+            <Info n={tr('Описание', 'Description')} v={p.description} />
           </div>
         </div>
       </main>
@@ -330,6 +383,8 @@ function ProductDetails({ product: p }: { product: Product }) {
           <div
             className="relative w-full h-full max-w-5xl"
             onClick={(event) => event.stopPropagation()}
+            onTouchStart={(event) => startSwipe(event.touches[0].clientX)}
+            onTouchEnd={(event) => endSwipe(event.changedTouches[0].clientX)}
           >
             <Image
               src={displayedImage}
@@ -343,14 +398,39 @@ function ProductDetails({ product: p }: { product: Product }) {
       )}
       {relatedProducts.length > 0 && (
         <section className="container-x pt-10 pb-24 border-t border-black/10">
-          <p className="eyebrow text-brown">Рекомендуем</p>
+          <p className="eyebrow text-brown">{tr('Рекомендуем', 'Recommended')}</p>
           <h2 className="display text-4xl mt-3 mb-10">
             {language === 'en' ? 'You may also like' : 'Вам также может понравиться'}
           </h2>
           <ProductGrid products={relatedProducts} />
         </section>
       )}
+      <div className="fixed inset-x-0 bottom-0 z-40 bg-ivory/95 backdrop-blur border-t border-black/10 p-3 flex items-center gap-4 lg:hidden">
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted truncate">
+            {color} / {size || '—'}
+          </p>
+          <b className="text-sm">{formatPrice(p.price * q)}</b>
+        </div>
+        <button
+          disabled={totalStock === 0 || selectedVariantStock === 0}
+          onClick={() => add(p, color, size, q)}
+          className="btn btn-dark flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {totalStock === 0 || selectedVariantStock === 0
+            ? tr('Нет в наличии', 'Out of stock')
+            : tr('Добавить в корзину', 'Add to cart')}
+        </button>
+      </div>
     </>
+  );
+}
+function ProductFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-black/10 bg-white p-3 min-w-0">
+      <span className="block text-[9px] uppercase tracking-wider text-muted">{label}</span>
+      <b className="block text-xs mt-2 break-words">{value}</b>
+    </div>
   );
 }
 function Info({ n, v }: { n: string; v: string }) {

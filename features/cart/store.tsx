@@ -6,7 +6,7 @@ import { Menu, Search, ShoppingBag, X, Minus, Plus, Send, Trash2 } from 'lucide-
 import type { CartItem, Product } from '@/types';
 import { formatPrice, siteConfig, TELEGRAM_USERNAME } from '@/config/site';
 import { clientStorage, storageKeys } from '@/core/storage/client-storage';
-import { LanguageSwitch } from '@/features/i18n';
+import { LanguageSwitch, useLanguage } from '@/features/i18n';
 import { useNotification } from '@/features/notifications';
 import { SearchDialog } from '@/features/search';
 import { useCatalog } from '@/features/catalog';
@@ -210,6 +210,8 @@ export function Footer() {
 }
 function CartDrawer() {
   const { items, open, setOpen, change, updateVariant, remove, total } = useCart();
+  const { language } = useLanguage();
+  const tr = (ru: string, en: string) => (language === 'en' ? en : ru);
   return (
     <div className={`fixed inset-0 z-50 ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
       <div
@@ -220,13 +222,15 @@ function CartDrawer() {
         className={`absolute right-0 top-0 h-[100dvh] w-full max-w-md bg-ivory p-4 sm:p-6 flex flex-col transition-transform ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex justify-between border-b pb-5">
-          <h2 className="display text-2xl">Корзина</h2>
+          <h2 className="display text-2xl">{tr('Корзина', 'Cart')}</h2>
           <button onClick={() => setOpen(false)}>
             <X />
           </button>
         </div>
         <div className="flex-1 overflow-auto py-5 space-y-5">
-          {!items.length && <p className="text-muted">Ваша корзина пуста.</p>}
+          {!items.length && (
+            <p className="text-muted">{tr('Ваша корзина пуста.', 'Your cart is empty.')}</p>
+          )}
           {items.map((x, i) => (
             <div key={i} className="flex gap-3 sm:gap-4">
               <Image
@@ -241,7 +245,7 @@ function CartDrawer() {
                 <div className="grid grid-cols-2 gap-2 my-3">
                   <label>
                     <span className="block text-[9px] uppercase tracking-wider text-muted mb-1">
-                      Цвет
+                      {tr('Цвет', 'Color')}
                     </span>
                     <select
                       aria-label="Выбрать цвет"
@@ -275,7 +279,7 @@ function CartDrawer() {
                   </label>
                   <label>
                     <span className="block text-[9px] uppercase tracking-wider text-muted mb-1">
-                      Размер
+                      {tr('Размер', 'Size')}
                     </span>
                     <select
                       aria-label="Выбрать размер"
@@ -320,11 +324,11 @@ function CartDrawer() {
         </div>
         <div className="border-t pt-5">
           <div className="flex justify-between text-lg mb-5">
-            <b>Итого</b>
+            <b>{tr('Итого', 'Total')}</b>
             <b>{formatPrice(total)}</b>
           </div>
           <Link onClick={() => setOpen(false)} href="/checkout" className="btn btn-dark w-full">
-            Оформить заказ
+            {tr('Оформить заказ', 'Checkout')}
           </Link>
         </div>
       </aside>

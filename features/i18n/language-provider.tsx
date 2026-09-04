@@ -92,6 +92,10 @@ const translations: Record<string, string> = {
   'Зачёркнутые цвета сейчас недоступны': 'Crossed-out colors are currently unavailable',
   'Зачёркнутые размеры сейчас недоступны': 'Crossed-out sizes are currently unavailable',
   'Таблица размеров': 'Size guide',
+  'Смахните для просмотра': 'Swipe to browse',
+  Плотность: 'Weight',
+  'Измерения указаны в сантиметрах. Для свободной посадки сравните их с любимой футболкой.':
+    'Measurements are in centimeters. For a relaxed fit, compare them with your favorite T-shirt.',
   Размер: 'Size',
   Грудь: 'Chest',
   Длина: 'Length',
@@ -148,7 +152,16 @@ const placeholders: Record<string, string> = {
   Телефон: 'Phone',
   'Telegram username (необязательно)': 'Telegram username (optional)',
   Город: 'City',
-  'Комментарий к доставке': 'Delivery comment',
+  'Город *': 'City *',
+  'Улица *': 'Street *',
+  'Дом *': 'Building *',
+  Подъезд: 'Entrance',
+  Этаж: 'Floor',
+  'Квартира *': 'Apartment *',
+  'Комментарий к заказу': 'Order comment',
+  'Поиск товаров...': 'Search products...',
+  'Цена от': 'Min price',
+  'Цена до': 'Max price',
 };
 const reverse = Object.fromEntries(Object.entries(translations).map(([ru, en]) => [en, ru]));
 const reversePlaceholders = Object.fromEntries(

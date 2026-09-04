@@ -7,10 +7,13 @@ import { getVariantImage, useCart } from '@/features/cart';
 import { formatPrice, TELEGRAM_USERNAME } from '@/config/site';
 import { createOrder } from '@/core/supabase/store';
 import { useNotification } from '@/features/notifications';
+import { useLanguage } from '@/features/i18n';
 export default function Checkout() {
   const { items, total, clear } = useCart();
   const { notify } = useNotification();
   const router = useRouter();
+  const { language } = useLanguage();
+  const tr = (ru: string, en: string) => (language === 'en' ? en : ru);
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -29,11 +32,11 @@ export default function Checkout() {
   const card = useRef<HTMLDivElement>(null);
   const fullAddress = [
     form.city,
-    form.street && `ул. ${form.street}`,
-    form.building && `дом ${form.building}`,
-    form.entrance && `подъезд ${form.entrance}`,
-    form.floor && `этаж ${form.floor}`,
-    form.apartment && `кв. ${form.apartment}`,
+    form.street && `${tr('ул.', 'St.')} ${form.street}`,
+    form.building && `${tr('дом', 'building')} ${form.building}`,
+    form.entrance && `${tr('подъезд', 'entrance')} ${form.entrance}`,
+    form.floor && `${tr('этаж', 'floor')} ${form.floor}`,
+    form.apartment && `${tr('кв.', 'apt.')} ${form.apartment}`,
   ]
     .filter(Boolean)
     .join(', ');
@@ -41,19 +44,19 @@ export default function Checkout() {
     '🛍 SPHINX ORDER',
     orderId ? `Order ID: ${orderId}` : '',
     '',
-    `Имя: ${form.name}`,
-    `Телефон: ${form.phone}`,
+    `${tr('Имя', 'Name')}: ${form.name}`,
+    `${tr('Телефон', 'Phone')}: ${form.phone}`,
     form.telegram ? `Telegram: ${form.telegram}` : '',
-    `Адрес: ${fullAddress}`,
-    form.comment ? `Комментарий: ${form.comment}` : '',
+    `${tr('Адрес', 'Address')}: ${fullAddress}`,
+    form.comment ? `${tr('Комментарий', 'Comment')}: ${form.comment}` : '',
     '',
-    'Товары:',
+    `${tr('Товары', 'Products')}:`,
     ...items.map(
       (item, index) =>
-        `${index + 1}. ${item.product.name}\n   Количество: ${item.quantity}\n   Цвет: ${item.color}\n   Размер: ${item.size}\n   Цена: ${formatPrice(item.product.price * item.quantity)}`,
+        `${index + 1}. ${item.product.name}\n   ${tr('Количество', 'Quantity')}: ${item.quantity}\n   ${tr('Цвет', 'Color')}: ${item.color}\n   ${tr('Размер', 'Size')}: ${item.size}\n   ${tr('Цена', 'Price')}: ${formatPrice(item.product.price * item.quantity)}`,
     ),
     '',
-    `Итого: ${formatPrice(total)}`,
+    `${tr('Итого', 'Total')}: ${formatPrice(total)}`,
   ]
     .filter((line, index, lines) => line !== '' || lines[index - 1] !== '')
     .join('\n');
@@ -114,16 +117,16 @@ export default function Checkout() {
   };
   return (
     <main className="container-x py-16">
-      <p className="eyebrow text-brown">Заказ через Telegram</p>
-      <h1 className="display text-5xl mt-3">Оформление заказа</h1>
+      <p className="eyebrow text-brown">{tr('Заказ через Telegram', 'Telegram checkout')}</p>
+      <h1 className="display text-5xl mt-3">{tr('Оформление заказа', 'Checkout')}</h1>
       <div className="grid lg:grid-cols-2 gap-12 mt-12">
         <section>
-          <h2 className="display text-2xl mb-6">Контактные данные</h2>
+          <h2 className="display text-2xl mb-6">{tr('Контактные данные', 'Contact details')}</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             {Object.entries({
-              name: 'Имя',
-              phone: 'Телефон',
-              telegram: 'Telegram username (необязательно)',
+              name: tr('Имя', 'Name'),
+              phone: tr('Телефон', 'Phone'),
+              telegram: tr('Telegram username (необязательно)', 'Telegram username (optional)'),
             }).map(([k, l]) => (
               <input
                 key={k}
@@ -134,16 +137,18 @@ export default function Checkout() {
               />
             ))}
             <div className="sm:col-span-2 border-t border-black/10 pt-5 mt-1">
-              <h3 className="display text-xl">Адрес доставки</h3>
-              <p className="text-xs text-muted mt-1">Укажите адрес подробно</p>
+              <h3 className="display text-xl">{tr('Адрес доставки', 'Delivery address')}</h3>
+              <p className="text-xs text-muted mt-1">
+                {tr('Укажите адрес подробно', 'Enter the full address')}
+              </p>
             </div>
             {Object.entries({
-              city: 'Город *',
-              street: 'Улица *',
-              building: 'Дом *',
-              entrance: 'Подъезд',
-              floor: 'Этаж',
-              apartment: 'Квартира *',
+              city: tr('Город *', 'City *'),
+              street: tr('Улица *', 'Street *'),
+              building: tr('Дом *', 'Building *'),
+              entrance: tr('Подъезд', 'Entrance'),
+              floor: tr('Этаж', 'Floor'),
+              apartment: tr('Квартира *', 'Apartment *'),
             }).map(([key, label]) => (
               <input
                 key={key}
@@ -155,7 +160,7 @@ export default function Checkout() {
             ))}
             <textarea
               className="field sm:col-span-2"
-              placeholder="Комментарий к доставке"
+              placeholder={tr('Комментарий к заказу', 'Order comment')}
               value={form.comment}
               onChange={(e) => setForm({ ...form, comment: e.target.value })}
             />
@@ -175,40 +180,47 @@ export default function Checkout() {
             onClick={() => void submitOrder()}
             className="btn btn-dark mt-6 disabled:opacity-40"
           >
-            {submitting ? 'Сохранение...' : 'Оформить заказ в Telegram'}
+            {submitting
+              ? tr('Сохранение...', 'Saving...')
+              : tr('Оформить заказ в Telegram', 'Prepare Telegram order')}
           </button>
           {ready && (
             <div className="bg-sand p-6 mt-7">
-              <h2 className="display text-3xl">Заказ почти готов!</h2>
+              <h2 className="display text-3xl">
+                {tr('Заказ почти готов!', 'Your order is almost ready!')}
+              </h2>
               {orderId && <p className="text-xs text-muted mt-2">Order ID: {orderId}</p>}
               <p className="text-sm leading-7 mt-3">
-                1. Нажмите «Отправить заказ»
+                {tr('1. Нажмите «Отправить заказ»', '1. Click “Send order”')}
                 <br />
-                2. Проверьте готовое сообщение и нажмите Send
+                {tr(
+                  '2. Проверьте готовое сообщение и нажмите Send',
+                  '2. Review the prepared message and press Send',
+                )}
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
                 <button className="btn btn-dark" onClick={download}>
-                  Скачать заказ
+                  {tr('Скачать заказ', 'Download order')}
                 </button>
                 <button
                   className="btn bg-white"
                   onClick={() => navigator.clipboard.writeText(text)}
                 >
-                  Скопировать заказ
+                  {tr('Скопировать заказ', 'Copy order')}
                 </button>
                 <button className="btn border border-ink" onClick={sendToTelegram}>
-                  Отправить заказ
+                  {tr('Отправить заказ', 'Send order')}
                 </button>
               </div>
             </div>
           )}
         </section>
         <section>
-          <h2 className="display text-2xl mb-6">Ваш заказ</h2>
+          <h2 className="display text-2xl mb-6">{tr('Ваш заказ', 'Your order')}</h2>
           <div ref={card} className="bg-white p-4 sm:p-7 border border-black/10">
             <div className="flex justify-between mb-7">
               <b className="display text-2xl tracking-widest">SPHINX</b>
-              <span className="eyebrow">Карточка заказа</span>
+              <span className="eyebrow">{tr('Карточка заказа', 'Order card')}</span>
             </div>
             {items.map((x, i) => (
               <div key={i} className="flex gap-4 border-t py-4">
@@ -231,7 +243,7 @@ export default function Checkout() {
               </div>
             ))}
             <div className="border-t pt-5 flex justify-between text-lg">
-              <b>Итого</b>
+              <b>{tr('Итого', 'Total')}</b>
               <b>{formatPrice(total)}</b>
             </div>
             {ready && (

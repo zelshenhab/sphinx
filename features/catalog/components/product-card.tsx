@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Product } from '@/types';
 import { formatPrice } from '@/config/site';
 import { useCart } from '@/features/cart';
+import { useLanguage } from '@/features/i18n';
 
 const storefrontColors = [
   { label: 'Black', aliases: ['black', 'чёрный', 'черный'], value: '#1d1d1b' },
@@ -14,6 +15,7 @@ const storefrontColors = [
 
 export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
+  const { language } = useLanguage();
   const availableVariant = product.colors
     .flatMap((color) =>
       product.sizes.map((size) => ({
@@ -60,12 +62,12 @@ export function ProductCard({ product }: { product: Product }) {
         )}
         {lowStock && (
           <span className="absolute bottom-3 left-3 bg-ink text-white px-3 py-1.5 text-[9px] tracking-wider">
-            Осталось {totalStock} шт.
+            {language === 'en' ? `Only ${totalStock} left` : `Осталось ${totalStock} шт.`}
           </span>
         )}
         {totalStock === 0 && (
           <span className="absolute inset-x-0 bottom-0 bg-black/70 text-white text-center py-2 text-[10px] tracking-widest">
-            НЕТ В НАЛИЧИИ
+            {language === 'en' ? 'OUT OF STOCK' : 'НЕТ В НАЛИЧИИ'}
           </span>
         )}
       </Link>
@@ -83,7 +85,7 @@ export function ProductCard({ product }: { product: Product }) {
             onClick={() => add(product, quickAddColor, quickAddSize)}
             className="text-[10px] uppercase tracking-wider border-b border-black disabled:opacity-35 disabled:cursor-not-allowed"
           >
-            Быстро добавить
+            {language === 'en' ? 'Quick add' : 'Быстро добавить'}
           </button>
         </div>
         <div className="flex gap-2 mt-3">
