@@ -748,7 +748,7 @@ export default function Products() {
                           p.stockQuantity === 0
                             ? 'text-red-700'
                             : p.stockQuantity !== undefined && p.stockQuantity <= 10
-                              ? 'text-amber-700'
+                              ? 'text-brown'
                               : 'text-green-700'
                         }
                       >

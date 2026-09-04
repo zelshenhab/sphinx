@@ -59,15 +59,13 @@ export default function Admin() {
             <h2 className="display text-2xl">Контроль склада</h2>
             <AlertTriangle
               size={18}
-              className={lowStockProducts.length ? 'text-amber-600' : 'text-green-700'}
+              className={lowStockProducts.length ? 'text-gold' : 'text-green-700'}
             />
           </div>
           {lowStockProducts.slice(0, 6).map((product) => (
             <div key={product.id} className="flex justify-between gap-4 border-t py-3 text-sm">
               <span className="truncate">{product.name}</span>
-              <b
-                className={(product.stockQuantity ?? 20) === 0 ? 'text-red-700' : 'text-amber-700'}
-              >
+              <b className={(product.stockQuantity ?? 20) === 0 ? 'text-red-700' : 'text-brown'}>
                 {(product.stockQuantity ?? 20) === 0
                   ? 'Нет в наличии'
                   : `${product.stockQuantity} шт.`}

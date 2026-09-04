@@ -235,7 +235,7 @@ function ProductDetails({ product: p }: { product: Product }) {
               {language === 'en' ? 'Out of stock' : 'Нет в наличии'}
             </p>
           ) : totalStock <= 10 ? (
-            <p className="text-sm text-amber-700 mt-3">
+            <p className="text-sm text-brown mt-3">
               {language === 'en' ? `Only ${totalStock} left` : `Осталось всего ${totalStock} шт.`}
             </p>
           ) : null}
@@ -302,7 +302,7 @@ function ProductDetails({ product: p }: { product: Product }) {
             {size && selectedVariantStock > 0 && (
               <p
                 key={`${color}-${size}-${selectedVariantStock}`}
-                className="text-sm text-amber-700 mt-3 stock-count-change"
+                className="text-sm text-brown mt-3 stock-count-change"
               >
                 {language === 'en'
                   ? `Only ${selectedVariantStock} left: ${color} / ${size}`

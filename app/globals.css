@@ -1,6 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+:root {
+  --color-ink: #181816;
+  --color-ivory: #f8f5ef;
+  --color-sand: #eee5d7;
+  --color-sand-deep: #d8c8b2;
+  --color-gold: #aa8b5b;
+  --color-muted: #686761;
+  --color-danger: #b4232c;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --section-space: clamp(56px, 7vw, 96px);
+}
 * {
   box-sizing: border-box;
 }
@@ -9,9 +21,18 @@ html {
 }
 body {
   margin: 0;
-  background: #f8f5ef;
-  color: #1d1d1b;
+  background: var(--color-ivory);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+::selection {
+  color: var(--color-ink);
+  background: rgb(170 139 91 / 28%);
 }
 button,
 a {
@@ -33,12 +54,27 @@ button {
 }
 .eyebrow {
   font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
   letter-spacing: 0.28em;
   text-transform: uppercase;
 }
 .display {
-  font-family: Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 400;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+main h1.display:not(.hero-wordmark) {
+  font-size: clamp(2.65rem, 5vw, 4rem);
+  line-height: 0.98;
+}
+main h2.display {
+  font-size: clamp(2rem, 3.5vw, 3.1rem);
+  line-height: 1.04;
+}
+main h3.display {
+  line-height: 1.12;
 }
 .btn {
   display: inline-flex;
@@ -57,15 +93,15 @@ button {
   transform: translateY(0) scale(0.985);
 }
 .btn-dark {
-  background: #1d1d1b;
+  background: var(--color-ink);
   color: white;
 }
 .btn-dark:hover {
-  background: #8b6b4a;
+  background: #2a2925;
 }
 .btn-light {
-  background: #fff;
-  color: #1d1d1b;
+  background: var(--color-ivory);
+  color: var(--color-ink);
 }
 .field {
   width: 100%;
@@ -78,16 +114,16 @@ button {
     box-shadow 0.2s ease;
 }
 .field:focus {
-  border-color: #8b6b4a;
-  box-shadow: 0 0 0 3px rgb(181 154 112/0.12);
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgb(170 139 91 / 14%);
 }
 .search-field {
   padding-left: 48px;
   padding-right: 44px;
 }
 .admin-card {
-  background: white;
-  border: 1px solid #e8e1d5;
+  background: #fffdfa;
+  border: 1px solid #e3dbcf;
   padding: 24px;
 }
 @media (max-width: 639px) {
@@ -251,8 +287,8 @@ main > section:not(:first-child) {
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: #f8f5ef;
-  color: #b59a70;
+  background: var(--color-ivory);
+  color: var(--color-gold);
   animation: splash-screen-life 2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .splash-pattern {
@@ -281,8 +317,8 @@ main > section:not(:first-child) {
   animation: splash-symbol-pulse 2.2s ease-in-out both;
 }
 .splash-wordmark {
-  color: #1d1d1b;
-  font-family: Georgia, serif;
+  color: var(--color-ink);
+  font-family: var(--font-display);
   font-size: clamp(34px, 7vw, 58px);
   line-height: 1;
   letter-spacing: 0.24em;
@@ -292,11 +328,11 @@ main > section:not(:first-child) {
   width: 0;
   height: 1px;
   margin: 17px 0 13px;
-  background: #b59a70;
+  background: var(--color-gold);
   animation: splash-line-grow 1.2s 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 .splash-tagline {
-  color: #8b6b4a;
+  color: var(--color-gold);
   font-size: 9px;
   letter-spacing: 0.52em;
   text-indent: 0.52em;
