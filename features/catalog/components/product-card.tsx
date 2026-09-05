@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Product } from '@/types';
@@ -11,6 +11,9 @@ export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
   const { language } = useLanguage();
   const [previewColor, setPreviewColor] = useState(product.colors[0] ?? '');
+  const [imageIndex, setImageIndex] = useState(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const blockNextClick = useRef(false);
   const availableVariant = product.colors
     .flatMap((color) =>
       product.sizes.map((size) => ({
@@ -40,20 +43,47 @@ export function ProductCard({ product }: { product: Product }) {
   const previewImages = product.colorImages?.[previewColor]?.length
     ? product.colorImages[previewColor]
     : product.images;
-  const primaryImage = previewImages[0] ?? product.images[0];
-  const secondaryImage = previewImages[1] ?? product.images[1];
+  const safeImageIndex = imageIndex < previewImages.length ? imageIndex : 0;
+  const primaryImage = previewImages[safeImageIndex] ?? product.images[0];
+  const secondaryImage = previewImages[(safeImageIndex + 1) % previewImages.length] ?? product.images[1];
+  const changeImageBySwipe = (clientX: number, clientY: number) => {
+    if (!touchStart.current || previewImages.length < 2) return;
+    const distanceX = clientX - touchStart.current.x;
+    const distanceY = clientY - touchStart.current.y;
+    touchStart.current = null;
+    if (Math.abs(distanceX) < 40 || Math.abs(distanceX) <= Math.abs(distanceY)) return;
+    blockNextClick.current = true;
+    setImageIndex((current) =>
+      distanceX < 0
+        ? (current + 1) % previewImages.length
+        : (current - 1 + previewImages.length) % previewImages.length,
+    );
+    window.setTimeout(() => {
+      blockNextClick.current = false;
+    }, 350);
+  };
   return (
     <article className="group product-card">
       <Link
         href={`/product/${product.slug}`}
-        className="relative block bg-sand overflow-hidden aspect-[4/5]"
+        onClick={(event) => {
+          if (blockNextClick.current) event.preventDefault();
+        }}
+        onTouchStart={(event) => {
+          touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+        }}
+        onTouchEnd={(event) =>
+          changeImageBySwipe(event.changedTouches[0].clientX, event.changedTouches[0].clientY)
+        }
+        className="relative block bg-sand overflow-hidden aspect-[4/5] touch-pan-y"
       >
         <Image
+          key={primaryImage}
           src={primaryImage}
           alt={product.name}
           fill
           sizes="(max-width: 1023px) 50vw, 25vw"
-          className="object-cover transition duration-700 group-hover:scale-[1.035]"
+          className="object-cover transition duration-700 group-hover:scale-[1.035] product-card-swipe-image"
         />
         {secondaryImage && secondaryImage !== primaryImage && (
           <Image
@@ -89,7 +119,7 @@ export function ProductCard({ product }: { product: Product }) {
             {previewImages.slice(0, 4).map((image, index) => (
               <i
                 key={image}
-                className={`w-1.5 h-1.5 rounded-full ${index === 0 ? 'bg-ink' : 'bg-white/80'}`}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${index === safeImageIndex ? 'bg-ink scale-125' : 'bg-white/80'}`}
               />
             ))}
           </div>
@@ -119,7 +149,10 @@ export function ProductCard({ product }: { product: Product }) {
               title={color}
               aria-label={`${language === 'en' ? 'Preview' : 'Показать'} ${color}`}
               key={color}
-              onClick={() => setPreviewColor(color)}
+              onClick={() => {
+                setPreviewColor(color);
+                setImageIndex(0);
+              }}
               className={`w-4 h-4 rounded-full border shadow-sm ${previewColor === color ? 'ring-1 ring-ink ring-offset-2' : 'border-black/25'}`}
               style={{ backgroundColor: getColorSwatch(color) }}
             />
