@@ -18,8 +18,10 @@ export default function InventoryPage() {
   const [showUnavailable, setShowUnavailable] = useState(false);
   useEffect(() => { void listOrders().then(setOrders).catch(() => setOrders([])); }, []);
   const rows = useMemo(() => products.flatMap((product) => {
-    const variants = product.variantStock
-      ? Object.entries(product.variantStock).map(([key, stock]) => { const [color,size] = key.split('::'); return {color,size,stock:Number(stock)||0}; }).filter((v) => product.colors.includes(v.color) && product.sizes.includes(v.size))
+    const hasConfiguredVariants =
+      product.variantStock && Object.keys(product.variantStock).length > 0;
+    const variants = hasConfiguredVariants
+      ? Object.entries(product.variantStock ?? {}).map(([key, stock]) => { const [color,size] = key.split('::'); return {color,size,stock:Number(stock)||0}; }).filter((v) => product.colors.includes(v.color) && product.sizes.includes(v.size))
       : product.colors.flatMap((color) => product.sizes.map((size) => ({color,size,stock:product.sizeStock?.[size] ?? product.stockQuantity ?? 0})));
     const count = (color:string,size:string,statuses:string[]) => orders.filter((order) => statuses.includes(order.status)).flatMap((order) => order.lines).filter((line) => line.productName===product.name && line.color===color && line.size===size).reduce((sum,line)=>sum+line.quantity,0);
     return variants.map((v) => ({product,...v,reserved:count(v.color,v.size,['new','contacted','confirmed']),sold:count(v.color,v.size,['shipped','completed'])}));
