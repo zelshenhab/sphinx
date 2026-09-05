@@ -14,6 +14,10 @@ import {
   LogOut,
   Menu,
   X,
+  Users,
+  BarChart3,
+  Boxes,
+  BadgePercent,
 } from 'lucide-react';
 import { createClient } from '@/core/supabase/client';
 const links: { name: string; href: string; icon: LucideIcon }[] = [
@@ -23,6 +27,10 @@ const links: { name: string; href: string; icon: LucideIcon }[] = [
   { name: 'Collections', href: '/admin/collections', icon: Layers },
   { name: 'Banners', href: '/admin/banners', icon: ImageIcon },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
+  { name: 'Inventory', href: '/admin/inventory', icon: Boxes },
+  { name: 'Customers', href: '/admin/customers', icon: Users },
+  { name: 'Discounts', href: '/admin/discounts', icon: BadgePercent },
+  { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 export function AdminShell({ children }: { children: React.ReactNode }) {

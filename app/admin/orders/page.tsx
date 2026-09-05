@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Search, ShoppingBag } from 'lucide-react';
+import { Copy, Search, Send, ShoppingBag, Truck } from 'lucide-react';
 import { formatPrice } from '@/config/site';
-import { listOrders, updateOrderStatus } from '@/core/supabase/store';
+import { listOrders, loadOrderTracking, saveOrderTracking, updateOrderStatus } from '@/core/supabase/store';
 import type { Order } from '@/types';
 
 const statuses = [
@@ -21,9 +21,13 @@ export default function Orders() {
   const [updating, setUpdating] = useState('');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [cityFilter, setCityFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [tracking, setTracking] = useState<Record<string, string>>({});
+  const [now] = useState(() => Date.now());
   useEffect(() => {
-    void listOrders()
-      .then(setOrders)
+    void Promise.all([listOrders(), loadOrderTracking()])
+      .then(([loadedOrders, loadedTracking]) => { setOrders(loadedOrders); setTracking(loadedTracking); })
       .catch((loadError) => {
         console.error('[SPHINX_ORDERS_LOAD_ERROR]', loadError);
         setError('Не удалось загрузить заказы из Supabase.');
@@ -51,8 +55,15 @@ export default function Orders() {
     const matchesQuery = `${order.id} ${order.customer} ${order.phone} ${order.telegram ?? ''}`
       .toLowerCase()
       .includes(query.trim().toLowerCase());
-    return matchesQuery && (statusFilter === 'all' || order.status === statusFilter);
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const matchesCity = cityFilter === 'all' || order.city.split(',')[0].trim() === cityFilter;
+    const created = new Date(order.createdAt ?? 0).getTime();
+    const days = dateFilter === '7' ? 7 : dateFilter === '30' ? 30 : 0;
+    const matchesDate = !days || created >= now - days * 86400000;
+    return matchesQuery && matchesStatus && matchesCity && matchesDate;
   });
+  const cities = Array.from(new Set(orders.map((order) => order.city.split(',')[0].trim()))).filter(Boolean);
+  const customerMessage = (order: Order) => `Здравствуйте, ${order.customer}!\nВаш заказ ${order.id} в SPHINX${tracking[order.databaseId ?? ''] ? ` отправлен. Трек-номер: ${tracking[order.databaseId ?? '']}` : ' принят в работу'}.\nСумма: ${formatPrice(order.total)}.`;
   return (
     <div className="space-y-5">
       <div className="admin-card">
@@ -64,7 +75,7 @@ export default function Orders() {
               новых
             </p>
           </div>
-          <div className="grid sm:grid-cols-[minmax(220px,1fr)_180px] gap-2 w-full sm:w-auto">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-2 w-full xl:w-auto">
             <label className="relative">
               <span className="sr-only">Поиск заказов</span>
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
@@ -88,6 +99,8 @@ export default function Orders() {
                 </option>
               ))}
             </select>
+            <select className="field" value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}><option value="all">Все города</option>{cities.map((city) => <option key={city}>{city}</option>)}</select>
+            <select className="field" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)}><option value="all">За всё время</option><option value="7">Последние 7 дней</option><option value="30">Последние 30 дней</option></select>
           </div>
         </div>
         {error && <p className="text-sm text-red-700 mt-4">{error}</p>}
@@ -161,6 +174,13 @@ export default function Orders() {
           <div className="flex justify-between border-t pt-5 text-lg">
             <b>Итого</b>
             <b>{formatPrice(order.total)}</b>
+          </div>
+          <div className="border-t mt-5 pt-5 grid md:grid-cols-[1fr_auto] gap-3">
+            <label className="relative"><Truck size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input className="field search-field" placeholder="Номер отправления" value={tracking[order.databaseId ?? ''] ?? ''} onChange={(event) => setTracking((current) => ({...current, [order.databaseId ?? '']: event.target.value}))} onBlur={() => order.databaseId && void saveOrderTracking(order.databaseId, tracking[order.databaseId] ?? '')} /></label>
+            <div className="flex gap-2">
+              <button onClick={() => void navigator.clipboard.writeText(customerMessage(order))} className="btn border border-ink"><Copy size={15} /> Копировать</button>
+              {order.telegram && <a target="_blank" href={`https://t.me/${order.telegram.replace('@','')}?text=${encodeURIComponent(customerMessage(order))}`} className="btn btn-dark"><Send size={15} /> Telegram</a>}
+            </div>
           </div>
         </article>
       ))}

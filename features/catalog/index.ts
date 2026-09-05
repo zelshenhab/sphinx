@@ -6,6 +6,7 @@ export {
   createProduct,
   deleteProduct,
   listProducts,
+  saveProductOrder,
   updateProduct,
   uploadProductImage,
 } from './services/product-repository';

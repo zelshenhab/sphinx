@@ -44,8 +44,28 @@ export async function listOrders(): Promise<Order[]> {
     })),
     total: order.total,
     date: new Intl.DateTimeFormat('ru-RU').format(new Date(order.created_at)),
+    createdAt: order.created_at,
     status: order.status,
   }));
+}
+
+export async function saveOrderTracking(id: string, trackingNumber: string) {
+  const { error } = await createClient().from('store_settings').upsert({
+    key: `order_tracking:${id}`,
+    value: trackingNumber.trim(),
+  });
+  if (error) throw error;
+}
+
+export async function loadOrderTracking(): Promise<Record<string, string>> {
+  const { data, error } = await createClient()
+    .from('store_settings')
+    .select('key,value')
+    .like('key', 'order_tracking:%');
+  if (error) throw error;
+  return Object.fromEntries(
+    (data ?? []).map((row) => [row.key.replace('order_tracking:', ''), String(row.value ?? '')]),
+  );
 }
 
 export async function updateOrderStatus(id: string, status: string) {

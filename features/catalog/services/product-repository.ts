@@ -102,6 +102,7 @@ export async function listProducts() {
         row.value as Record<string, number>,
       ]),
   );
+  const productOrder = ((mediaRows ?? []).find((row) => row.key === 'product_order')?.value ?? []) as string[];
   return (data as ProductRow[]).map((row) => {
     const variants = variantStock.get(row.id);
     return {
@@ -113,7 +114,16 @@ export async function listProducts() {
         ? Object.values(variants).reduce((total, quantity) => total + quantity, 0)
         : (stock.get(row.id) ?? 20),
     };
+  }).sort((a, b) => {
+    const first = productOrder.indexOf(a.id);
+    const second = productOrder.indexOf(b.id);
+    return (first < 0 ? 99999 : first) - (second < 0 ? 99999 : second);
   });
+}
+
+export async function saveProductOrder(ids: string[]) {
+  const { error } = await createClient().from('store_settings').upsert({ key: 'product_order', value: ids });
+  if (error) throw error;
 }
 export async function listCategories(): Promise<Category[]> {
   const { data, error } = await createClient()

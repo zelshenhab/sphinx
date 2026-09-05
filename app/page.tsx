@@ -44,13 +44,14 @@ export default function Home() {
   const hasHeroContent = Boolean(heroTitle || heroSubtitle || heroCta);
   return (
     <main>
-      <section className="min-h-[64svh] sm:min-h-[72vh] bg-sand relative overflow-hidden flex items-end text-white">
+      <section className={`min-h-[64svh] bg-sand relative overflow-hidden flex items-end ${banner?.textColor === 'dark' ? 'text-ink' : 'text-white'}`} style={{ minHeight: banner?.height ? `min(${banner.height}px, 78vh)` : undefined }}>
         {heroImage && (
           <Image
             src={heroImage}
             alt={bannerTitle ?? featuredCollectionName ?? 'SPHINX collection'}
             fill
             priority
+            style={{ objectPosition: banner?.imagePosition ?? 'center' }}
             className={`object-cover hero-image ${banner?.mobileImage ? 'hidden md:block' : ''}`}
           />
         )}
@@ -63,10 +64,9 @@ export default function Home() {
             className="object-cover hero-image md:hidden"
           />
         )}
-        {hasHeroContent && <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/5" />}
-        {hasHeroContent && <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />}
+        {hasHeroContent && !banner?.imageContainsText && <div className="absolute inset-0 bg-gradient-to-r from-black to-transparent" style={{opacity:(banner?.gradientOpacity ?? 65)/100}} />}
         {hasHeroContent && (
-          <div className="container-x relative w-full pb-12 sm:pb-20 md:pb-24">
+          <div className={`container-x relative w-full pb-12 sm:pb-20 md:pb-24 ${banner?.textAlign === 'center' ? 'text-center' : banner?.textAlign === 'right' ? 'text-right' : 'text-left'}`}>
             {heroSubtitle && <p className="eyebrow mb-4 sm:mb-6 text-white/75">{heroSubtitle}</p>}
             {heroTitle && <h1 className="display text-5xl sm:text-6xl md:text-7xl tracking-[.06em] hero-wordmark max-w-3xl">{heroTitle}</h1>}
             {heroTitle && !banner && (
@@ -74,7 +74,7 @@ export default function Home() {
                 {language === 'en' ? 'Ancient power. Made for now.' : 'Древняя сила. Создано для настоящего.'}
               </p>
             )}
-            {heroCta && <div className="flex gap-3 mt-7 sm:mt-9"><Link href={banner?.ctaUrl || '/shop'} className="btn btn-light">{heroCta}</Link></div>}
+            {(heroCta || banner?.secondCtaText) && <div className={`flex gap-3 mt-7 sm:mt-9 ${banner?.textAlign === 'center' ? 'justify-center' : banner?.textAlign === 'right' ? 'justify-end' : ''}`}>{heroCta && <Link href={banner?.ctaUrl || '/shop'} className="btn btn-light">{heroCta}</Link>}{banner?.secondCtaText && <Link href={banner.secondCtaUrl || '/shop'} className="btn border border-current">{language === 'en' && banner.secondCtaTextEn ? banner.secondCtaTextEn : banner.secondCtaText}</Link>}</div>}
           </div>
         )}
       </section>

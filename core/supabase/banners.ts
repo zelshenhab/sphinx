@@ -27,6 +27,15 @@ export async function saveBanner(input: Omit<Banner, 'id'> & { id?: string }) {
       location: input.location ?? 'home',
       startsAt: input.startsAt ?? '',
       endsAt: input.endsAt ?? '',
+      secondCtaText: input.secondCtaText ?? '',
+      secondCtaTextEn: input.secondCtaTextEn ?? '',
+      secondCtaUrl: input.secondCtaUrl ?? '',
+      height: input.height ?? 620,
+      imagePosition: input.imagePosition ?? 'center',
+      gradientOpacity: input.gradientOpacity ?? 65,
+      textColor: input.textColor ?? 'white',
+      textAlign: input.textAlign ?? 'left',
+      imageContainsText: input.imageContainsText ?? false,
     },
   });
   if (metadataError) throw metadataError;

@@ -128,13 +128,14 @@ export default function Shop() {
   return (
     <main className="container-x py-16">
       {banner && (
-        <section className="relative min-h-72 mb-14 overflow-hidden bg-ink text-white flex items-end">
+        <section className={`relative min-h-72 mb-14 overflow-hidden bg-ink flex items-end ${banner.textColor === 'dark' ? 'text-ink' : 'text-white'}`} style={{minHeight: banner.height ? `${Math.min(banner.height,520)}px` : undefined}}>
           {banner.image && (
             <Image
               src={banner.image}
               alt={banner.title}
               fill
               priority
+              style={{objectPosition:banner.imagePosition ?? 'center'}}
               className={`object-cover ${banner.mobileImage ? 'hidden md:block' : ''}`}
             />
           )}
@@ -147,12 +148,12 @@ export default function Shop() {
               className="object-cover md:hidden"
             />
           )}
-          {hasBannerContent && <div className="absolute inset-0 bg-gradient-to-r from-black/75 to-transparent" />}
+          {hasBannerContent && !banner.imageContainsText && <div className="absolute inset-0 bg-gradient-to-r from-black to-transparent" style={{opacity:(banner.gradientOpacity ?? 65)/100}} />}
           {hasBannerContent && (
-            <div className="relative p-7 sm:p-10">
+            <div className={`relative p-7 sm:p-10 w-full ${banner.textAlign === 'center' ? 'text-center' : banner.textAlign === 'right' ? 'text-right' : ''}`}>
               {bannerSubtitle && <p className="eyebrow">{bannerSubtitle}</p>}
               {bannerTitle && <h2 className="display text-4xl sm:text-5xl mt-3">{bannerTitle}</h2>}
-              {bannerCta && <Link href={banner.ctaUrl || '/shop'} className="btn btn-light mt-6">{bannerCta}</Link>}
+              {(bannerCta || banner.secondCtaText) && <div className={`flex gap-3 mt-6 ${banner.textAlign === 'center' ? 'justify-center' : banner.textAlign === 'right' ? 'justify-end' : ''}`}>{bannerCta && <Link href={banner.ctaUrl || '/shop'} className="btn btn-light">{bannerCta}</Link>}{banner.secondCtaText && <Link href={banner.secondCtaUrl || '/shop'} className="btn border border-current">{language === 'en' && banner.secondCtaTextEn ? banner.secondCtaTextEn : banner.secondCtaText}</Link>}</div>}
             </div>
           )}
         </section>

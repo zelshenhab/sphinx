@@ -19,6 +19,9 @@ const emptyBanner: BannerDraft = {
   ctaText: '',
   ctaTextEn: '',
   ctaUrl: '/shop',
+  secondCtaText: '', secondCtaTextEn: '', secondCtaUrl: '',
+  height: 620, imagePosition: 'center', gradientOpacity: 65,
+  textColor: 'white', textAlign: 'left', imageContainsText: false,
   location: 'home',
   startsAt: '',
   endsAt: '',
@@ -32,6 +35,7 @@ export default function BannersPage() {
   const [editing, setEditing] = useState<string | 'new' | null>(null);
   const [draft, setDraft] = useState<BannerDraft>(emptyBanner);
   const [uploading, setUploading] = useState<'desktop' | 'mobile' | null>(null);
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const selected = banners.find((banner) => banner.id === editing);
   const open = (id: string | 'new') => {
     const banner = banners.find((item) => item.id === id);
@@ -47,6 +51,9 @@ export default function BannersPage() {
             ctaText: banner.ctaText,
             ctaTextEn: banner.ctaTextEn ?? '',
             ctaUrl: banner.ctaUrl,
+            secondCtaText: banner.secondCtaText ?? '', secondCtaTextEn: banner.secondCtaTextEn ?? '', secondCtaUrl: banner.secondCtaUrl ?? '',
+            height: banner.height ?? 620, imagePosition: banner.imagePosition ?? 'center', gradientOpacity: banner.gradientOpacity ?? 65,
+            textColor: banner.textColor ?? 'white', textAlign: banner.textAlign ?? 'left', imageContainsText: banner.imageContainsText ?? false,
             location: banner.location ?? 'home',
             startsAt: banner.startsAt ?? '',
             endsAt: banner.endsAt ?? '',
@@ -139,6 +146,15 @@ export default function BannersPage() {
               value={draft.ctaUrl}
               change={(ctaUrl) => setDraft({ ...draft, ctaUrl })}
             />
+            <Field label="Second button text (optional)" value={draft.secondCtaText ?? ''} change={(secondCtaText) => setDraft({...draft,secondCtaText})} />
+            <Field label="English second button" value={draft.secondCtaTextEn ?? ''} change={(secondCtaTextEn) => setDraft({...draft,secondCtaTextEn})} />
+            <Field label="Second button URL" value={draft.secondCtaUrl ?? ''} change={(secondCtaUrl) => setDraft({...draft,secondCtaUrl})} />
+            <Field label="Height (px)" type="number" value={String(draft.height ?? 620)} change={(height) => setDraft({...draft,height:Math.max(240,Number(height))})} />
+            <label><Label>Image position</Label><select className="field mt-2" value={draft.imagePosition} onChange={(e)=>setDraft({...draft,imagePosition:e.target.value as Banner['imagePosition']})}><option value="top">Top</option><option value="center">Center</option><option value="bottom">Bottom</option></select></label>
+            <label><Label>Text position</Label><select className="field mt-2" value={draft.textAlign} onChange={(e)=>setDraft({...draft,textAlign:e.target.value as Banner['textAlign']})}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>
+            <label><Label>Text color</Label><select className="field mt-2" value={draft.textColor} onChange={(e)=>setDraft({...draft,textColor:e.target.value as Banner['textColor']})}><option value="white">White</option><option value="dark">Dark</option></select></label>
+            <label><Label>Gradient: {draft.gradientOpacity}%</Label><input type="range" min="0" max="100" className="w-full mt-4 accent-black" value={draft.gradientOpacity} onChange={(e)=>setDraft({...draft,gradientOpacity:Number(e.target.value)})} /></label>
+            <label className="flex gap-3 items-center mt-6"><input type="checkbox" checked={draft.imageContainsText} onChange={(e)=>setDraft({...draft,imageContainsText:e.target.checked})} />Image already contains text</label>
             <label>
               <Label>Location</Label>
               <select
@@ -196,15 +212,18 @@ export default function BannersPage() {
             />
           </div>
           {draft.image && (
-            <div className="relative mt-5 aspect-[16/6] overflow-hidden bg-ink text-white">
+            <div className="mt-5">
+            <div className="flex gap-2 mb-3"><button onClick={() => setPreviewDevice('desktop')} className={`px-4 py-2 text-xs border ${previewDevice === 'desktop' ? 'bg-ink text-white' : ''}`}>Desktop</button><button onClick={() => setPreviewDevice('mobile')} className={`px-4 py-2 text-xs border ${previewDevice === 'mobile' ? 'bg-ink text-white' : ''}`}>Mobile</button></div>
+            <div className={`relative overflow-hidden bg-ink text-white transition-all ${previewDevice === 'mobile' ? 'max-w-xs mx-auto aspect-[4/5]' : 'aspect-[16/6]'}`}>
               <Image
-                src={draft.image}
+                src={previewDevice === 'mobile' && draft.mobileImage ? draft.mobileImage : draft.image}
                 alt="Banner preview"
                 fill
-                className="object-cover opacity-70"
+                style={{objectPosition:draft.imagePosition ?? 'center'}}
+                className={`object-cover ${draft.imageContainsText ? '' : 'opacity-70'}`}
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent" />
-              <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-8">
+              {!draft.imageContainsText && <div className="absolute inset-0 bg-gradient-to-r from-black to-transparent" style={{opacity:(draft.gradientOpacity ?? 65)/100}} />}
+              <div className={`absolute inset-0 flex flex-col justify-end p-5 sm:p-8 ${draft.textAlign === 'center' ? 'text-center items-center' : draft.textAlign === 'right' ? 'text-right items-end' : 'text-left items-start'} ${draft.textColor === 'dark' ? 'text-ink' : 'text-white'}`}>
                 {draft.subtitle && <p className="text-xs tracking-widest uppercase">{draft.subtitle}</p>}
                 {draft.title && <p className="display text-3xl sm:text-5xl mt-2">{draft.title}</p>}
                 {draft.ctaText && (
@@ -213,6 +232,7 @@ export default function BannersPage() {
                   </span>
                 )}
               </div>
+            </div>
             </div>
           )}
           <div className="flex gap-2 mt-5">

@@ -27,7 +27,9 @@ export interface Order {
   }>;
   total: number;
   date: string;
+  createdAt?: string;
   status: string;
+  trackingNumber?: string;
 }
 
 export interface Banner {
@@ -41,6 +43,15 @@ export interface Banner {
   ctaText: string;
   ctaTextEn?: string;
   ctaUrl: string;
+  secondCtaText?: string;
+  secondCtaTextEn?: string;
+  secondCtaUrl?: string;
+  height?: number;
+  imagePosition?: 'top' | 'center' | 'bottom';
+  gradientOpacity?: number;
+  textColor?: 'white' | 'dark';
+  textAlign?: 'left' | 'center' | 'right';
+  imageContainsText?: boolean;
   location?: 'home' | 'shop';
   startsAt?: string;
   endsAt?: string;

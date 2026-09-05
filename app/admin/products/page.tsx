@@ -6,13 +6,14 @@ import {
   createProduct,
   deleteProduct,
   listProducts,
+  saveProductOrder,
   products as seed,
   uploadProductImage,
   updateProduct,
   useCatalog,
 } from '@/features/catalog';
 import { Product } from '@/types';
-import { formatPrice, getColorSwatch } from '@/config/site';
+import { getColorSwatch } from '@/config/site';
 import { clientStorage, storageKeys } from '@/core/storage/client-storage';
 import { useNotification } from '@/features/notifications';
 const blank = {
@@ -88,6 +89,8 @@ export default function Products() {
   const [productQuery, setProductQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [stockFilter, setStockFilter] = useState('all');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [draggedId, setDraggedId] = useState('');
   const missingSeedProducts = seed.filter(
     (originalProduct) =>
       !(remoteProducts ?? list).some((product) => product.slug === originalProduct.slug),
@@ -178,6 +181,18 @@ export default function Products() {
   const save = (x: Product[]) => {
     setList(x);
     clientStorage.set(storageKeys.products, x);
+  };
+  const quickUpdate = async (product: Product, changes: Partial<Product>) => {
+    const next = { ...product, ...changes };
+    save(list.map((item) => item.id === product.id ? next : item));
+    try { await updateProduct(next); await refresh(); } catch (updateError) { console.info('[SPHINX_QUICK_UPDATE_LOCAL]', updateError); }
+  };
+  const moveProduct = async (targetId: string) => {
+    if (!draggedId || draggedId === targetId) return;
+    const next = [...list]; const from = next.findIndex((item) => item.id === draggedId); const to = next.findIndex((item) => item.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [moved] = next.splice(from,1); next.splice(to,0,moved); save(next); setDraggedId('');
+    try { await saveProductOrder(next.map((item) => item.id)); } catch (orderError) { console.info('[SPHINX_PRODUCT_ORDER_LOCAL]', orderError); }
   };
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -711,6 +726,12 @@ export default function Products() {
           </button>
         </form>
       )}
+      {selectedIds.length > 0 && (
+        <div className="sticky top-4 z-20 bg-ink text-white p-4 mb-5 flex flex-wrap items-center justify-between gap-3 shadow-xl">
+          <span className="text-sm">Выбрано: {selectedIds.length}</span>
+          <button className="btn bg-red-700 text-white" onClick={async () => { if (!window.confirm(`Удалить выбранные товары (${selectedIds.length})?`)) return; await Promise.all(selectedIds.map((id) => deleteProduct(id))); save(list.filter((item) => !selectedIds.includes(item.id))); setSelectedIds([]); await refresh(); }}>Удалить выбранные</button>
+        </div>
+      )}
       <div className="space-y-8">
         {categoryGroups.map((group) => (
           <section key={group.slug} className="border border-black/10">
@@ -724,7 +745,7 @@ export default function Products() {
               <table className="w-full text-sm text-left min-w-[760px]">
                 <thead className="text-xs text-muted">
                   <tr>
-                    {['Image', 'Name', 'Price', 'Old Price', 'Status', 'Stock', 'Actions'].map(
+                    {['Select', 'Image', 'Name', 'Price', 'Featured', 'Status', 'Stock', 'Actions'].map(
                       (column) => (
                         <th className="py-3" key={column}>
                           {column}
@@ -735,13 +756,14 @@ export default function Products() {
                 </thead>
                 <tbody>
                   {group.products.map((p) => (
-                    <tr className="border-t" key={p.id}>
+                    <tr draggable onDragStart={() => setDraggedId(p.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => void moveProduct(p.id)} className="border-t cursor-grab active:cursor-grabbing" key={p.id}>
+                      <td><input aria-label={`Select ${p.name}`} type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => setSelectedIds((current) => current.includes(p.id) ? current.filter((id) => id !== p.id) : [...current,p.id])} /></td>
                       <td className="py-3">
                         <Image src={p.images[0]} alt="" width={46} height={56} />
                       </td>
                       <td>{p.name}</td>
-                      <td>{formatPrice(p.price)}</td>
-                      <td>{p.oldPrice ? formatPrice(p.oldPrice) : '—'}</td>
+                      <td><input aria-label={`Price for ${p.name}`} className="w-24 border px-2 py-1" type="number" defaultValue={p.price} onBlur={(event) => { const price=Number(event.target.value); if (price >= 0 && price !== p.price) void quickUpdate(p,{price}); }} /></td>
+                      <td><input aria-label={`Featured ${p.name}`} type="checkbox" checked={p.featured} onChange={(event) => void quickUpdate(p,{featured:event.target.checked})} /></td>
                       <td className="text-green-700">Active</td>
                       <td
                         className={
@@ -752,7 +774,7 @@ export default function Products() {
                               : 'text-green-700'
                         }
                       >
-                        {p.stockQuantity ?? 20} pcs
+                        <input aria-label={`Stock for ${p.name}`} className="w-20 border px-2 py-1" type="number" min="0" defaultValue={p.stockQuantity ?? 20} onBlur={(event) => { const stockQuantity=Math.max(0,Number(event.target.value)); if (stockQuantity !== (p.stockQuantity ?? 20)) void quickUpdate(p,{stockQuantity,sizeStock:distributeStock(p.sizes,stockQuantity),variantStock:distributeVariantStock(p.colors,p.sizes,stockQuantity)}); }} /> pcs
                       </td>
                       <td className="space-x-3">
                         <button

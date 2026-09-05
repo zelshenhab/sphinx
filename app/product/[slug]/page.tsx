@@ -250,7 +250,7 @@ function ProductDetails({ product: p }: { product: Product }) {
           </div>
           <div className="flex items-start gap-3 border-y border-black/10 py-4 mt-5">
             <Truck size={19} strokeWidth={1.5} className="text-brown shrink-0 mt-0.5" />
-            <div><b className="block text-xs">{tr('Доставка через 2–4 дня', 'Estimated delivery in 2–4 days')}</b><span className="text-[10px] text-muted">{tr('Срок уточняется после подтверждения заказа', 'Confirmed after your order is reviewed')}</span></div>
+            <div><b className="block text-xs">{language === 'en' ? `Estimated delivery: ${settings.delivery_estimate || '2–4 days'}` : `Доставка: ${settings.delivery_estimate || '2–4 дня'}`}</b><span className="text-[10px] text-muted">{tr('Срок уточняется после подтверждения заказа', 'Confirmed after your order is reviewed')}</span></div>
           </div>
           {totalStock === 0 ? (
             <p className="text-sm text-red-700 mt-3">

@@ -9,11 +9,13 @@ import { formatPrice, TELEGRAM_USERNAME } from '@/config/site';
 import { createOrder } from '@/core/supabase/store';
 import { useNotification } from '@/features/notifications';
 import { useLanguage } from '@/features/i18n';
+import { useCatalog } from '@/features/catalog';
 export default function Checkout() {
   const { items, total, clear } = useCart();
   const { notify } = useNotification();
   const router = useRouter();
   const { language } = useLanguage();
+  const { settings } = useCatalog();
   const tr = (ru: string, en: string) => (language === 'en' ? en : ru);
   const [form, setForm] = useState({
     name: '',
@@ -64,7 +66,7 @@ export default function Checkout() {
     '',
     '━━━━━━━━━━━━━━━━━━',
     `💰 ${tr('Итого', 'Total')}: ${formatPrice(total)}`,
-    `🚚 ${tr('Доставка', 'Delivery')}: ${tr('ориентировочно 2–4 дня', 'estimated 2–4 days')}`,
+    `🚚 ${tr('Доставка', 'Delivery')}: ${settings.delivery_estimate || tr('ориентировочно 2–4 дня', 'estimated 2–4 days')}`,
   ]
     .filter((line, index, lines) => line !== '' || lines[index - 1] !== '')
     .join('\n');
@@ -211,6 +213,7 @@ export default function Checkout() {
           </div>
           <button
             disabled={
+              settings.orders_enabled === 'false' ||
               ready ||
               submitting ||
               !items.length ||
@@ -226,7 +229,9 @@ export default function Checkout() {
           >
             {submitting
               ? tr('Сохранение...', 'Saving...')
-              : tr('Оформить заказ в Telegram', 'Prepare Telegram order')}
+              : settings.orders_enabled === 'false'
+                ? tr('Приём заказов временно остановлен', 'Orders are temporarily paused')
+                : tr('Оформить заказ в Telegram', 'Prepare Telegram order')}
           </button>
           {ready && (
             <div className="bg-sand border border-gold/30 p-6 mt-7">

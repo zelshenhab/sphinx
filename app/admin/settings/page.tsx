@@ -15,6 +15,15 @@ const defaults: Record<string, string> = {
   currency: 'RUB ₽',
   sizes: 'XS, S, M, L, XL, XXL',
   colors: 'Black, White, Sand',
+  logo: '',
+  favicon: '/assets/products/cd986ef7-8736-4312-a63e-2a4375055055.png',
+  free_shipping_threshold: '7000',
+  delivery_estimate: '2–4 дня',
+  exchange_policy: 'Обмен и возврат доступны после согласования с магазином.',
+  languages: 'ru, en',
+  seller_details: '',
+  maintenance_mode: 'false',
+  orders_enabled: 'true',
 };
 export default function Settings() {
   const { notify } = useNotification();
@@ -38,17 +47,20 @@ export default function Settings() {
     return () => window.clearTimeout(id);
   }, []);
   return (
-    <div className="admin-card max-w-2xl">
+    <div className="admin-card max-w-4xl">
       <h2 className="display text-2xl mb-6">Настройки</h2>
+      <p className="text-xs text-muted mb-6">Бренд, контакты, доставка, языки и режим работы магазина.</p>
       <div className="grid sm:grid-cols-2 gap-4">
         {Object.entries(s).map(([k, v]) => (
           <label className={k === 'announcement' ? 'sm:col-span-2' : ''} key={k}>
             <span className="text-xs text-muted uppercase">{k}</span>
-            <input
-              className="field mt-2"
-              value={v}
-              onChange={(e) => setS({ ...s, [k]: e.target.value })}
-            />
+            {(k === 'maintenance_mode' || k === 'orders_enabled') ? (
+              <select className="field mt-2" value={v} onChange={(e) => setS({...s,[k]:e.target.value})}><option value="false">Выключено</option><option value="true">Включено</option></select>
+            ) : (k === 'exchange_policy' || k === 'seller_details') ? (
+              <textarea className="field mt-2 min-h-24" value={v} onChange={(e) => setS({...s,[k]:e.target.value})} />
+            ) : (
+              <input className="field mt-2" value={v} onChange={(e) => setS({ ...s, [k]: e.target.value })} />
+            )}
           </label>
         ))}
       </div>

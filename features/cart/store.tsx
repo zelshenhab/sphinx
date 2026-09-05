@@ -373,10 +373,10 @@ export function Footer() {
 }
 function CartDrawer() {
   const { items, open, setOpen, change, updateVariant, remove, total } = useCart();
-  const { products } = useCatalog();
+  const { products, settings } = useCatalog();
   const { language } = useLanguage();
   const tr = (ru: string, en: string) => (language === 'en' ? en : ru);
-  const freeShippingAt = 7000;
+  const freeShippingAt = Math.max(0, Number(settings.free_shipping_threshold) || 7000);
   const shippingProgress = Math.min(100, (total / freeShippingAt) * 100);
   const stockChanged = items.some((item) => {
     const currentProduct = products.find((product) => product.id === item.product.id);
