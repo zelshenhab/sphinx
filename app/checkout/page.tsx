@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { toPng } from 'html-to-image';
+import { Check, CheckCircle2, Send } from 'lucide-react';
 import { getVariantImage, useCart } from '@/features/cart';
 import { formatPrice, TELEGRAM_USERNAME } from '@/config/site';
 import { createOrder } from '@/core/supabase/store';
@@ -29,6 +30,9 @@ export default function Checkout() {
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const orderReference = orderId
+    ? `SPX-${orderId.replace(/[^a-z0-9]/gi, '').slice(-6).toUpperCase()}`
+    : '';
   const card = useRef<HTMLDivElement>(null);
   const fullAddress = [
     form.city,
@@ -41,28 +45,49 @@ export default function Checkout() {
     .filter(Boolean)
     .join(', ');
   const text = [
-    '🛍 SPHINX ORDER',
-    orderId ? `Order ID: ${orderId}` : '',
+    '━━━━━━━━━━━━━━━━━━',
+    '🛍️ SPHINX — NEW ORDER',
+    orderReference ? `🔖 ${tr('Заказ', 'Order')}: ${orderReference}` : '',
+    '━━━━━━━━━━━━━━━━━━',
     '',
-    `${tr('Имя', 'Name')}: ${form.name}`,
-    `${tr('Телефон', 'Phone')}: ${form.phone}`,
-    form.telegram ? `Telegram: ${form.telegram}` : '',
-    `${tr('Адрес', 'Address')}: ${fullAddress}`,
-    form.comment ? `${tr('Комментарий', 'Comment')}: ${form.comment}` : '',
+    `👤 ${tr('Имя', 'Name')}: ${form.name}`,
+    `📞 ${tr('Телефон', 'Phone')}: ${form.phone}`,
+    form.telegram ? `✈️ Telegram: ${form.telegram}` : '',
+    `📍 ${tr('Адрес', 'Address')}: ${fullAddress}`,
+    form.comment ? `📝 ${tr('Комментарий', 'Comment')}: ${form.comment}` : '',
     '',
-    `${tr('Товары', 'Products')}:`,
+    `📦 ${tr('Товары', 'Products')}:`,
     ...items.map(
       (item, index) =>
-        `${index + 1}. ${item.product.name}\n   ${tr('Количество', 'Quantity')}: ${item.quantity}\n   ${tr('Цвет', 'Color')}: ${item.color}\n   ${tr('Размер', 'Size')}: ${item.size}\n   ${tr('Цена', 'Price')}: ${formatPrice(item.product.price * item.quantity)}`,
+        `${index + 1}) ${item.product.name}\n   • ${tr('Количество', 'Quantity')}: ${item.quantity}\n   • ${tr('Цвет', 'Color')}: ${item.color}\n   • ${tr('Размер', 'Size')}: ${item.size}\n   • ${tr('Цена', 'Price')}: ${formatPrice(item.product.price * item.quantity)}`,
     ),
     '',
-    `${tr('Итого', 'Total')}: ${formatPrice(total)}`,
+    '━━━━━━━━━━━━━━━━━━',
+    `💰 ${tr('Итого', 'Total')}: ${formatPrice(total)}`,
+    `🚚 ${tr('Доставка', 'Delivery')}: ${tr('ориентировочно 2–4 дня', 'estimated 2–4 days')}`,
   ]
     .filter((line, index, lines) => line !== '' || lines[index - 1] !== '')
     .join('\n');
   const telegramUrl = `https://t.me/${TELEGRAM_USERNAME}?text=${encodeURIComponent(text)}`;
   const sendToTelegram = () => {
     window.open(telegramUrl, '_blank', 'noopener,noreferrer');
+  };
+  const finishOrder = () => {
+    sessionStorage.setItem(
+      'sphinx_last_order',
+      JSON.stringify({
+        reference: orderReference,
+        customer: form.name,
+        total,
+        items: items.map((item) => ({
+          name: item.product.name,
+          color: item.color,
+          size: item.size,
+          quantity: item.quantity,
+          image: getVariantImage(item.product, item.color),
+        })),
+      }),
+    );
     clear();
     router.push('/order-success');
   };
@@ -119,6 +144,25 @@ export default function Checkout() {
     <main className="container-x py-16">
       <p className="eyebrow text-brown">{tr('Заказ через Telegram', 'Telegram checkout')}</p>
       <h1 className="display text-5xl mt-3">{tr('Оформление заказа', 'Checkout')}</h1>
+      <ol className="grid grid-cols-3 max-w-2xl mt-9" aria-label="Checkout progress">
+        {[
+          tr('Корзина', 'Cart'),
+          tr('Данные', 'Details'),
+          'Telegram',
+        ].map((label, index) => {
+          const complete = index === 0 || (index === 1 && ready);
+          const active = index === (ready ? 2 : 1);
+          return (
+            <li key={label} className="relative text-center">
+              {index > 0 && <span className={`absolute top-4 right-1/2 w-full h-px ${complete || active ? 'bg-ink' : 'bg-black/15'}`} />}
+              <span className={`relative mx-auto w-8 h-8 rounded-full grid place-items-center text-[10px] border ${complete ? 'bg-ink text-white border-ink' : active ? 'border-ink bg-white' : 'border-black/15 bg-ivory text-muted'}`}>
+                {complete ? <Check size={14} /> : index + 1}
+              </span>
+              <span className={`block text-[10px] uppercase tracking-wider mt-2 ${active ? 'font-semibold' : 'text-muted'}`}>{label}</span>
+            </li>
+          );
+        })}
+      </ol>
       <div className="grid lg:grid-cols-2 gap-12 mt-12">
         <section>
           <h2 className="display text-2xl mb-6">{tr('Контактные данные', 'Contact details')}</h2>
@@ -185,11 +229,12 @@ export default function Checkout() {
               : tr('Оформить заказ в Telegram', 'Prepare Telegram order')}
           </button>
           {ready && (
-            <div className="bg-sand p-6 mt-7">
+            <div className="bg-sand border border-gold/30 p-6 mt-7">
+              <CheckCircle2 className="text-brown mb-4" size={30} />
               <h2 className="display text-3xl">
-                {tr('Заказ почти готов!', 'Your order is almost ready!')}
+                {tr('Заказ успешно создан!', 'Order created successfully!')}
               </h2>
-              {orderId && <p className="text-xs text-muted mt-2">Order ID: {orderId}</p>}
+              {orderReference && <p className="inline-block bg-white border border-black/10 px-4 py-2 text-sm font-medium mt-4">{tr('Номер заказа', 'Order number')}: {orderReference}</p>}
               <p className="text-sm leading-7 mt-3">
                 {tr('1. Нажмите «Отправить заказ»', '1. Click “Send order”')}
                 <br />
@@ -198,7 +243,15 @@ export default function Checkout() {
                   '2. Review the prepared message and press Send',
                 )}
               </p>
-              <div className="flex flex-wrap gap-2 mt-5">
+              <button className="btn btn-dark w-full mt-6 min-h-14 text-sm gap-2" onClick={sendToTelegram}>
+                <Send size={18} />
+                {tr('Отправить заказ в Telegram', 'Send order to Telegram')}
+              </button>
+              <button className="btn border border-ink w-full mt-3" onClick={finishOrder}>
+                <Check size={17} /> {tr('Я отправил заказ', 'I sent the order')}
+              </button>
+              <p className="text-[10px] text-muted text-center mt-3">{tr('Корзина очистится только после этого подтверждения', 'Your cart is cleared only after this confirmation')}</p>
+              <div className="flex flex-wrap gap-2 mt-3">
                 <button className="btn btn-dark" onClick={download}>
                   {tr('Скачать заказ', 'Download order')}
                 </button>
@@ -208,14 +261,11 @@ export default function Checkout() {
                 >
                   {tr('Скопировать заказ', 'Copy order')}
                 </button>
-                <button className="btn border border-ink" onClick={sendToTelegram}>
-                  {tr('Отправить заказ', 'Send order')}
-                </button>
               </div>
             </div>
           )}
         </section>
-        <section>
+        <section className="lg:sticky lg:top-28 self-start">
           <h2 className="display text-2xl mb-6">{tr('Ваш заказ', 'Your order')}</h2>
           <div ref={card} className="bg-white p-4 sm:p-7 border border-black/10">
             <div className="flex justify-between mb-7">

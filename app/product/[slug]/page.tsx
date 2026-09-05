@@ -2,7 +2,8 @@
 import { use, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Plus, Truck, X } from 'lucide-react';
+import Link from 'next/link';
 import { ProductGrid, useCatalog } from '@/features/catalog';
 import { formatPrice, getColorSwatch, TELEGRAM_USERNAME } from '@/config/site';
 import { useCart } from '@/features/cart';
@@ -64,7 +65,7 @@ function ProductDetails({ product: p }: { product: Product }) {
   const purchaseActionsRef = useRef<HTMLDivElement>(null);
   const [purchaseActionsVisible, setPurchaseActionsVisible] = useState(false);
   const { add } = useCart();
-  const { categories, products, settings } = useCatalog();
+  const { categories, collections, products, settings } = useCatalog();
   const { language } = useLanguage();
   const tr = (ru: string, en: string) => (language === 'en' ? en : ru);
   const selectedVariantStock = size ? stockForVariant(color, size) : 0;
@@ -77,6 +78,7 @@ function ProductDetails({ product: p }: { product: Product }) {
     )
     .sort((a, b) => {
       const score = (product: Product) =>
+        Number(collections.some((collection) => collection.productIds.includes(p.id) && collection.productIds.includes(product.id))) * 20 +
         Number(product.category === p.category) * 10 +
         Number(product.type === p.type) * 4 +
         product.colors.filter((candidate) => p.colors.includes(candidate)).length;
@@ -138,8 +140,22 @@ function ProductDetails({ product: p }: { product: Product }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+  useEffect(() => {
+    currentImages.slice(1).forEach((src) => {
+      const nextImage = new window.Image();
+      nextImage.src = src;
+    });
+  }, [currentImages]);
   return (
     <>
+      <div className="container-x pt-5 flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted">
+        <Link href="/" className="hidden sm:inline hover:text-ink">{tr('Главная', 'Home')}</Link>
+        <span className="hidden sm:inline">/</span>
+        <Link href={`/shop/${p.category}`} className="hidden sm:inline hover:text-ink">{p.category}</Link>
+        <span className="hidden sm:inline">/</span>
+        <span className="hidden sm:inline text-ink truncate">{p.name}</span>
+        <Link href={`/shop/${p.category}`} className="sm:hidden inline-flex min-h-11 items-center gap-2 text-ink"><ArrowLeft size={17} /> {tr('Назад', 'Back')}</Link>
+      </div>
       <main className="container-x py-6 sm:py-10 pb-28 lg:pb-10 grid lg:grid-cols-[minmax(0,1.15fr)_minmax(380px,.85fr)] gap-8 sm:gap-12 lg:gap-16">
         <div className="grid md:grid-cols-[96px_minmax(0,1fr)] gap-3 items-start -mx-5 sm:mx-0">
           <div
@@ -157,6 +173,7 @@ function ProductDetails({ product: p }: { product: Product }) {
               alt={p.name}
               fill
               priority
+              sizes="(max-width: 1023px) 100vw, 55vw"
               className="object-cover product-gallery-image"
             />
             {discountPercent > 0 && (
@@ -208,6 +225,7 @@ function ProductDetails({ product: p }: { product: Product }) {
                   src={x}
                   alt=""
                   fill
+                  sizes="96px"
                   className="object-cover transition-transform duration-500 hover:scale-105"
                 />
               </button>
@@ -229,6 +247,10 @@ function ProductDetails({ product: p }: { product: Product }) {
                 {tr('ВЫГОДА', 'SAVE')} {discountPercent}%
               </span>
             )}
+          </div>
+          <div className="flex items-start gap-3 border-y border-black/10 py-4 mt-5">
+            <Truck size={19} strokeWidth={1.5} className="text-brown shrink-0 mt-0.5" />
+            <div><b className="block text-xs">{tr('Доставка через 2–4 дня', 'Estimated delivery in 2–4 days')}</b><span className="text-[10px] text-muted">{tr('Срок уточняется после подтверждения заказа', 'Confirmed after your order is reviewed')}</span></div>
           </div>
           {totalStock === 0 ? (
             <p className="text-sm text-red-700 mt-3">
@@ -253,7 +275,7 @@ function ProductDetails({ product: p }: { product: Product }) {
                     onClick={() => selectColor(c)}
                     key={c}
                     title={available ? c : `${c} — ${tr('недоступен', 'unavailable')}`}
-                    className={`relative flex items-center gap-2 px-5 py-3 text-xs border active:scale-95 ${color === c && available ? 'border-ink bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-40 line-through bg-black/5'}`}
+                    className={`relative flex items-center gap-2 px-5 min-h-12 text-xs border active:scale-95 ${color === c && available ? 'border-ink bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-40 line-through bg-black/5'}`}
                   >
                     <span
                       className="w-3.5 h-3.5 rounded-full border border-black/40 shadow-sm"
@@ -292,7 +314,7 @@ function ProductDetails({ product: p }: { product: Product }) {
                         ? `${s} — ${tr(`осталось ${remaining}`, `${remaining} left`)}`
                         : `${s} — ${tr('недоступен', 'unavailable')}`
                     }
-                    className={`relative py-4 text-xs border transition-transform active:scale-95 ${size === s && available ? 'bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-35 line-through bg-black/5'}`}
+                    className={`relative min-h-12 py-3 text-xs border transition-transform active:scale-95 ${size === s && available ? 'bg-ink text-white' : 'border-black/15'} ${available ? '' : 'cursor-not-allowed opacity-35 line-through bg-black/5'}`}
                   >
                     {s}
                   </button>
@@ -459,15 +481,15 @@ function ProductDetails({ product: p }: { product: Product }) {
       )}
       {relatedProducts.length > 0 && (
         <section className="container-x pt-10 pb-24 border-t border-black/10">
-          <p className="eyebrow text-brown">{tr('Рекомендуем', 'Recommended')}</p>
+          <p className="eyebrow text-brown">{tr('Завершите образ', 'Complete the look')}</p>
           <h2 className="display text-4xl mt-3 mb-10">
-            {language === 'en' ? 'You may also like' : 'Вам также может понравиться'}
+            {language === 'en' ? 'Wear it together' : 'Сочетайте вместе'}
           </h2>
           <ProductGrid products={relatedProducts} />
         </section>
       )}
       <div
-        className={`fixed inset-x-0 bottom-0 z-40 bg-ivory/95 backdrop-blur border-t border-black/10 p-3 flex items-center gap-4 lg:hidden transition-transform duration-300 ${purchaseActionsVisible ? 'translate-y-full pointer-events-none' : 'translate-y-0'}`}
+        className={`fixed inset-x-0 bottom-16 z-30 bg-ivory/95 backdrop-blur border-t border-black/10 p-3 flex items-center gap-4 lg:hidden transition-transform duration-300 ${purchaseActionsVisible ? 'translate-y-[calc(100%+4rem)] pointer-events-none' : 'translate-y-0'}`}
       >
         <div className="min-w-0">
           <p className="text-[10px] text-muted truncate">

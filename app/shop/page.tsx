@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Grid2X2, Rows2, Search, SlidersHorizontal, X } from 'lucide-react';
 import { ProductGrid, ProductGridSkeleton, useCatalog } from '@/features/catalog';
 import { useLanguage } from '@/features/i18n';
+import { formatPrice, getColorSwatch } from '@/config/site';
 export default function Shop() {
   const { banners, categories, products, loading, settings } = useCatalog();
   const { language } = useLanguage();
@@ -32,6 +33,7 @@ export default function Shop() {
       ...products.flatMap((product) => product.colors),
     ]),
   ).filter(Boolean);
+  const highestPrice = Math.max(1, ...products.map((product) => product.price));
   const productStock = (product: (typeof products)[number]) =>
     product.variantStock
       ? Object.values(product.variantStock).reduce((total, value) => total + value, 0)
@@ -186,7 +188,7 @@ export default function Shop() {
           <SlidersHorizontal size={16} />
           {language === 'en' ? 'Open filters' : 'Открыть фильтры'}
         </button>
-        <div className="hidden md:grid md:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="hidden md:grid md:grid-cols-[220px_1fr_1fr] gap-5 items-start">
           <select className="field" value={cat} onChange={(e) => setCat(e.target.value)}>
             <option value="all">{language === 'en' ? 'All categories' : 'Все категории'}</option>
             {availableCategories.map((category) => (
@@ -195,39 +197,31 @@ export default function Shop() {
               </option>
             ))}
           </select>
-          <select className="field" value={size} onChange={(event) => setSize(event.target.value)}>
-            <option value="all">{language === 'en' ? 'All sizes' : 'Все размеры'}</option>
-            {sizes.map((option) => (
-              <option key={option}>{option}</option>
-            ))}
-          </select>
-          <select
-            className="field"
-            value={color}
-            onChange={(event) => setColor(event.target.value)}
-          >
-            <option value="all">{language === 'en' ? 'All colors' : 'Все цвета'}</option>
-            {colors.map((option) => (
-              <option key={option}>{option}</option>
-            ))}
-          </select>
-          <input
-            className="field"
-            type="number"
-            min="0"
-            value={minPrice}
-            onChange={(event) => setMinPrice(event.target.value)}
-            placeholder={language === 'en' ? 'Min price' : 'Цена от'}
+          <VisualFilters
+            language={language}
+            sizes={sizes}
+            colors={colors}
+            size={size}
+            color={color}
+            setSize={setSize}
+            setColor={setColor}
           />
-          <input
-            className="field"
-            type="number"
-            min="0"
-            value={maxPrice}
-            onChange={(event) => setMaxPrice(event.target.value)}
-            placeholder={language === 'en' ? 'Max price' : 'Цена до'}
-          />
-          <label className="field flex items-center gap-2 cursor-pointer text-sm">
+          <div className="border border-black/10 bg-white p-4">
+            <div className="flex justify-between text-xs mb-3">
+              <b>{language === 'en' ? 'Maximum price' : 'Максимальная цена'}</b>
+              <span>{maxPrice ? formatPrice(Number(maxPrice)) : language === 'en' ? 'Any' : 'Любая'}</span>
+            </div>
+            <input
+              className="w-full accent-black"
+              type="range"
+              min="0"
+              max={highestPrice}
+              step="100"
+              value={maxPrice || highestPrice}
+              onChange={(event) => setMaxPrice(event.target.value === String(highestPrice) ? '' : event.target.value)}
+            />
+          </div>
+          <label className="field flex items-center gap-2 cursor-pointer text-sm md:col-start-1">
             <input
               type="checkbox"
               checked={inStockOnly}
@@ -340,26 +334,17 @@ export default function Shop() {
                 </option>
               ))}
             </select>
-            <select
-              className="field"
-              value={size}
-              onChange={(event) => setSize(event.target.value)}
-            >
-              <option value="all">{language === 'en' ? 'All sizes' : 'Все размеры'}</option>
-              {sizes.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-            <select
-              className="field"
-              value={color}
-              onChange={(event) => setColor(event.target.value)}
-            >
-              <option value="all">{language === 'en' ? 'All colors' : 'Все цвета'}</option>
-              {colors.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
+            <div className="col-span-2">
+              <VisualFilters
+                language={language}
+                sizes={sizes}
+                colors={colors}
+                size={size}
+                color={color}
+                setSize={setSize}
+                setColor={setColor}
+              />
+            </div>
             <input
               className="field"
               type="number"
@@ -421,5 +406,48 @@ function FilterChip({ label, clear }: { label: string; clear: () => void }) {
       {label}
       <X size={12} />
     </button>
+  );
+}
+
+function VisualFilters({
+  language,
+  sizes,
+  colors,
+  size,
+  color,
+  setSize,
+  setColor,
+}: {
+  language: 'ru' | 'en';
+  sizes: string[];
+  colors: string[];
+  size: string;
+  color: string;
+  setSize: (value: string) => void;
+  setColor: (value: string) => void;
+}) {
+  return (
+    <div className="grid sm:grid-cols-2 gap-5 border border-black/10 bg-white p-4">
+      <div>
+        <b className="text-xs">{language === 'en' ? 'Size' : 'Размер'}</b>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <button onClick={() => setSize('all')} className={`min-w-10 h-9 px-2 text-[10px] border ${size === 'all' ? 'bg-ink text-white border-ink' : 'border-black/15'}`}>ALL</button>
+          {sizes.map((item) => (
+            <button key={item} onClick={() => setSize(item)} className={`min-w-10 h-9 px-2 text-[10px] border ${size === item ? 'bg-ink text-white border-ink' : 'border-black/15'}`}>{item}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <b className="text-xs">{language === 'en' ? 'Color' : 'Цвет'}</b>
+        <div className="flex flex-wrap gap-3 mt-3">
+          <button onClick={() => setColor('all')} className={`h-9 px-3 text-[10px] border ${color === 'all' ? 'bg-ink text-white border-ink' : 'border-black/15'}`}>ALL</button>
+          {colors.map((item) => (
+            <button key={item} title={item} aria-label={item} onClick={() => setColor(item)} className={`w-9 h-9 rounded-full border-2 p-1 ${color === item ? 'border-ink scale-110' : 'border-transparent'}`}>
+              <span className="block w-full h-full rounded-full border border-black/20 shadow-sm" style={{ backgroundColor: getColorSwatch(item) }} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

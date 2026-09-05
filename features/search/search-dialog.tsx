@@ -17,6 +17,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
   const { language } = useLanguage();
   const { categories, products } = useCatalog();
   const [query, setQuery] = useState('');
+  const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const close = useCallback(() => {
     setQuery('');
@@ -32,6 +33,8 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
           hint: 'Начните вводить название товара',
           results: 'Результаты',
           close: 'Закрыть поиск',
+          recent: 'Недавние запросы',
+          clearRecent: 'Очистить',
         }
       : {
           title: 'Search',
@@ -40,6 +43,8 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
           hint: 'Start typing a product name',
           results: 'Results',
           close: 'Close search',
+          recent: 'Recent searches',
+          clearRecent: 'Clear',
         };
 
   const results = useMemo(() => {
@@ -50,13 +55,28 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
         categories.some((category) => category.slug === product.category && category.active),
       )
       .filter((product) =>
-        [product.name, product.category, product.description, product.type]
+        [
+          product.name,
+          product.category,
+          categories.find((category) => category.slug === product.category)?.name,
+          product.description,
+          product.type,
+          ...product.colors,
+        ]
           .join(' ')
           .toLocaleLowerCase()
           .includes(normalized),
       )
       .slice(0, 8);
   }, [categories, products, query]);
+
+  const rememberSearch = (value: string) => {
+    const normalized = value.trim();
+    if (!normalized) return;
+    const next = [normalized, ...recent.filter((item) => item !== normalized)].slice(0, 6);
+    setRecent(next);
+    localStorage.setItem('sphinx_recent_searches', JSON.stringify(next));
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -73,6 +93,17 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
       document.body.style.overflow = previousOverflow;
     };
   }, [open, close]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('sphinx_recent_searches') || '[]');
+      if (Array.isArray(stored)) setRecent(stored.filter((item) => typeof item === 'string').slice(0, 6));
+    } catch {
+      localStorage.removeItem('sphinx_recent_searches');
+    }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
     <div
@@ -108,7 +139,22 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
             />
           </div>
 
-          {!query.trim() && <p className="py-10 text-center text-sm text-muted">{copy.hint}</p>}
+          {!query.trim() && (
+            <div className="py-8">
+              <p className="text-center text-sm text-muted">{copy.hint}</p>
+              {recent.length > 0 && (
+                <div className="mt-7">
+                  <div className="flex justify-between items-center">
+                    <p className="eyebrow text-muted">{copy.recent}</p>
+                    <button onClick={() => { setRecent([]); localStorage.removeItem('sphinx_recent_searches'); }} className="text-[10px] border-b border-ink">{copy.clearRecent}</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {recent.map((item) => <button key={item} onClick={() => setQuery(item)} className="border border-black/10 bg-white px-4 py-2 text-xs">{item}</button>)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {query.trim() && results.length === 0 && (
             <p className="py-10 text-center text-sm text-muted">{copy.empty}</p>
           )}
@@ -121,13 +167,13 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
                 {results.map((product) => (
                   <Link
                     href={`/product/${product.slug}`}
-                    onClick={close}
+                    onClick={() => { rememberSearch(query); close(); }}
                     key={product.id}
                     className="group flex gap-4 border border-black/10 bg-white p-3 hover:border-gold"
                   >
                     <div className="relative h-24 w-20 shrink-0 overflow-hidden bg-sand">
                       <Image
-                        src={product.images[0]}
+                        src={product.colorImages?.[product.colors[0]]?.[0] || product.images[0]}
                         alt={product.name}
                         fill
                         sizes="80px"

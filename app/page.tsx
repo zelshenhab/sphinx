@@ -36,16 +36,18 @@ export default function Home() {
     )
     .sort((a, b) => Number(b.isNew) - Number(a.isNew))
     .slice(0, 4);
+  const heroImage =
+    banner?.image || featuredCollection?.image || '/assets/collections/tshirts-collection.png';
   return (
     <main>
-      <section className="min-h-[78vh] bg-sand relative overflow-hidden flex items-end">
-        {banner?.image && (
+      <section className="min-h-[64svh] sm:min-h-[72vh] bg-sand relative overflow-hidden flex items-end text-white">
+        {heroImage && (
           <Image
-            src={banner.image}
-            alt={bannerTitle ?? banner.title}
+            src={heroImage}
+            alt={bannerTitle ?? featuredCollectionName ?? 'SPHINX collection'}
             fill
             priority
-            className={`object-cover hero-image ${banner.mobileImage ? 'hidden md:block' : ''}`}
+            className={`object-cover hero-image ${banner?.mobileImage ? 'hidden md:block' : ''}`}
           />
         )}
         {banner?.mobileImage && (
@@ -57,26 +59,19 @@ export default function Home() {
             className="object-cover hero-image md:hidden"
           />
         )}
-        <div className="absolute right-0 top-0 hidden md:grid w-1/2 h-full place-items-center border-l border-brown/10 bg-ivory/45">
-          <BrandWordmark className="px-8" />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-sand via-sand/85 to-transparent" />
-        <div className="container-x relative w-full pb-20 md:pb-28">
-          <p className="eyebrow mb-6">{bannerSubtitle || 'The Guardian · 2026'}</p>
-          <h1 className="display text-6xl md:text-8xl tracking-[.08em] hero-wordmark">
-            {bannerTitle || 'SPHINX'}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/5" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+        <div className="container-x relative w-full pb-12 sm:pb-20 md:pb-24">
+          <p className="eyebrow mb-4 sm:mb-6 text-white/75">{bannerSubtitle || 'The Guardian · 2026'}</p>
+          <h1 className="display text-5xl sm:text-6xl md:text-7xl tracking-[.06em] hero-wordmark max-w-3xl">
+            {bannerTitle || featuredCollectionName || 'SPHINX'}
           </h1>
-          <p className="text-xl md:text-3xl display mt-5 max-w-lg">
-            Наследие Египта.
-            <br />
-            Создано для настоящего.
+          <p className="text-lg sm:text-xl md:text-2xl display mt-4 max-w-lg text-white/90">
+            {language === 'en' ? 'Ancient power. Made for now.' : 'Древняя сила. Создано для настоящего.'}
           </p>
-          <div className="flex gap-3 mt-9">
-            <Link href={banner?.ctaUrl || '/shop'} className="btn btn-dark">
+          <div className="flex gap-3 mt-7 sm:mt-9">
+            <Link href={banner?.ctaUrl || '/shop'} className="btn btn-light">
               {bannerCta || 'Смотреть коллекцию'}
-            </Link>
-            <Link href="/shop?sort=new" className="btn btn-light">
-              Новинки
             </Link>
           </div>
         </div>

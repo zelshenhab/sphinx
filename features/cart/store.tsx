@@ -3,7 +3,22 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Menu, Search, ShoppingBag, X, Minus, Plus, Send, Trash2 } from 'lucide-react';
+import {
+  CreditCard,
+  Gem,
+  Home,
+  LayoutGrid,
+  Menu,
+  Minus,
+  Plus,
+  RefreshCw,
+  Search,
+  Send,
+  ShoppingBag,
+  Trash2,
+  Truck,
+  X,
+} from 'lucide-react';
 import type { CartItem, Product } from '@/types';
 import { formatPrice, siteConfig, TELEGRAM_USERNAME } from '@/config/site';
 import { clientStorage, storageKeys } from '@/core/storage/client-storage';
@@ -62,6 +77,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       );
     });
     setOpen(true);
+    if ('vibrate' in navigator) navigator.vibrate(35);
     notify('cart_added', 'success');
   };
   const change = (i: number, d: number) =>
@@ -145,17 +161,22 @@ export function Header() {
       document.body.style.overflow = '';
     };
   }, [menu]);
+  useEffect(() => {
+    const openSearch = () => setSearchOpen(true);
+    window.addEventListener('sphinx:open-search', openSearch);
+    return () => window.removeEventListener('sphinx:open-search', openSearch);
+  }, []);
   return (
     <>
-      <div className="bg-ink text-white text-center py-2 text-[10px] tracking-[.2em]">
+      <div className="bg-ink text-white text-center py-1.5 sm:py-2 text-[9px] sm:text-[10px] tracking-[.14em] sm:tracking-[.2em]">
         {settings.announcement || 'БЕСПЛАТНАЯ ДОСТАВКА ОТ 7 000 ₽'}
       </div>
       <header
         className={`sticky top-0 z-40 border-b border-black/10 transition ${scrolled ? 'bg-ivory shadow-lg backdrop-blur-xl' : 'bg-ivory/95 backdrop-blur'}`}
       >
-        <div className="container-x h-16 sm:h-20 flex items-center justify-between relative">
+        <div className="container-x h-14 sm:h-20 flex items-center gap-2 sm:gap-5">
           <button
-            className="lg:hidden z-10 p-2 -ml-2"
+            className="lg:hidden shrink-0 p-2 -ml-2"
             onClick={() => setMenu(true)}
             aria-label="Open menu"
           >
@@ -163,9 +184,9 @@ export function Header() {
           </button>
           <Link
             href="/"
-            className="absolute left-[40%] -translate-x-1/2 sm:left-1/2 lg:static lg:translate-x-0 text-center leading-none"
+            className="mr-auto lg:mr-0 text-left lg:text-center leading-none min-w-0"
           >
-            <b className="display text-xl sm:text-2xl tracking-[.22em]">
+            <b className="display text-[18px] sm:text-2xl tracking-[.16em] sm:tracking-[.22em]">
               {settings.brand || 'SPHINX'}
             </b>
             <small className="hidden sm:block text-[7px] tracking-[.42em] mt-1">
@@ -177,25 +198,27 @@ export function Header() {
               </small>
             )}
           </Link>
-          <nav className="hidden lg:flex gap-6 text-[11px] uppercase tracking-wider">
+          <nav className="hidden lg:flex flex-1 justify-center gap-6 text-[11px] uppercase tracking-wider">
             {visibleNav.map(([n, h]) => (
               <Link key={h} href={h} className="hover:text-brown">
                 {n}
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-3 sm:gap-4">
-            <LanguageSwitch />
-            <button onClick={() => setSearchOpen(true)} aria-label="Search" className="p-1">
+          <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
+            <div className="max-[390px]:hidden">
+              <LanguageSwitch />
+            </div>
+            <button onClick={() => setSearchOpen(true)} aria-label="Search" className="p-2">
               <Search size={18} />
             </button>
-            <a href={`https://t.me/${telegram}`}>
+            <a href={`https://t.me/${telegram}`} className="hidden sm:block">
               <Send size={17} />
             </a>
             <button
               key={count}
               onClick={() => setOpen(true)}
-              className={`relative ${count > 0 ? 'cart-bump' : ''}`}
+              className={`relative p-2 ${count > 0 ? 'cart-bump' : ''}`}
             >
               <ShoppingBag size={20} />
               {count > 0 && (
@@ -241,6 +264,10 @@ export function Header() {
             ))}
           </nav>
           <div className="mt-auto border-t border-black/10 pt-5">
+            <div className="max-[390px]:flex hidden items-center justify-between mb-5">
+              <span className="text-xs uppercase tracking-wider">Language</span>
+              <LanguageSwitch />
+            </div>
             <div className="flex justify-between text-xs">
               <Link href="/contact" onClick={() => setMenu(false)}>
                 Контакты
@@ -251,14 +278,60 @@ export function Header() {
         </aside>
       </div>
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+      {!pathname.startsWith('/admin') && (
+        <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-black/10 bg-ivory/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Mobile navigation">
+          <MobileNavItem href="/" label={language === 'en' ? 'Home' : 'Главная'} active={pathname === '/'} icon={Home} />
+          <MobileNavItem href="/shop" label={language === 'en' ? 'Shop' : 'Магазин'} active={pathname.startsWith('/shop') || pathname.startsWith('/product')} icon={LayoutGrid} />
+          <button onClick={() => setSearchOpen(true)} className="min-h-16 grid place-items-center content-center gap-1 text-[9px] uppercase tracking-wider">
+            <Search size={19} />
+            {language === 'en' ? 'Search' : 'Поиск'}
+          </button>
+          <button onClick={() => setOpen(true)} className="relative min-h-16 grid place-items-center content-center gap-1 text-[9px] uppercase tracking-wider">
+            <span className="relative"><ShoppingBag size={19} />{count > 0 && <i className="absolute -top-2 -right-3 bg-gold text-white rounded-full not-italic text-[8px] w-4 h-4 grid place-items-center">{count}</i>}</span>
+            {language === 'en' ? 'Cart' : 'Корзина'}
+          </button>
+        </nav>
+      )}
     </>
   );
 }
+function MobileNavItem({ href, label, active, icon: Icon }: { href: string; label: string; active: boolean; icon: typeof Home }) {
+  return <Link href={href} className={`min-h-16 grid place-items-center content-center gap-1 text-[9px] uppercase tracking-wider ${active ? 'text-brown' : ''}`}><Icon size={19} />{label}</Link>;
+}
 export function Footer() {
   const { settings } = useCatalog();
+  const { language } = useLanguage();
   const telegram = settings.telegram || TELEGRAM_USERNAME;
+  const trustItems = language === 'en'
+    ? [
+        [Gem, 'Premium materials', 'Selected fabrics and lasting quality'],
+        [RefreshCw, 'Easy exchange', 'A simple and clear exchange process'],
+        [CreditCard, 'Secure payment', 'Your order details stay protected'],
+        [Truck, 'Fast delivery', 'Careful delivery to your address'],
+      ]
+    : [
+        [Gem, 'Премиальные материалы', 'Отборные ткани и долговечное качество'],
+        [RefreshCw, 'Лёгкий обмен', 'Простой и понятный процесс обмена'],
+        [CreditCard, 'Безопасная оплата', 'Данные вашего заказа защищены'],
+        [Truck, 'Быстрая доставка', 'Бережная доставка по вашему адресу'],
+      ];
   return (
-    <footer className="bg-ink text-white mt-16 sm:mt-24">
+    <>
+      <section className="mt-16 sm:mt-24 border-y border-black/10 bg-white" aria-label="Store benefits">
+        <div className="container-x grid grid-cols-2 lg:grid-cols-4">
+          {trustItems.map(([Icon, title, description], index) => (
+            <div
+              key={title as string}
+              className={`py-7 sm:py-9 px-3 sm:px-7 ${index % 2 === 0 ? 'border-r' : ''} lg:border-r lg:last:border-r-0 ${index < 2 ? 'border-b lg:border-b-0' : ''} border-black/10`}
+            >
+              <Icon size={20} strokeWidth={1.4} className="text-brown" />
+              <b className="display block text-base sm:text-lg mt-4">{title as string}</b>
+              <p className="text-[10px] sm:text-xs text-muted leading-5 mt-2">{description as string}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+      <footer className="bg-ink text-white">
       <div className="container-x py-12 sm:py-16 grid grid-cols-2 lg:grid-cols-4 gap-9 sm:gap-12">
         <div>
           <div className="display text-3xl tracking-[.2em]">{settings.brand || 'SPHINX'}</div>
@@ -294,13 +367,21 @@ export function Footer() {
         <span>© 2026 SPHINX</span>
         <span>THE GUARDIAN</span>
       </div>
-    </footer>
+      </footer>
+    </>
   );
 }
 function CartDrawer() {
   const { items, open, setOpen, change, updateVariant, remove, total } = useCart();
+  const { products } = useCatalog();
   const { language } = useLanguage();
   const tr = (ru: string, en: string) => (language === 'en' ? en : ru);
+  const freeShippingAt = 7000;
+  const shippingProgress = Math.min(100, (total / freeShippingAt) * 100);
+  const stockChanged = items.some((item) => {
+    const currentProduct = products.find((product) => product.id === item.product.id);
+    return currentProduct && stockForVariant(currentProduct, item.color, item.size) < item.quantity;
+  });
   return (
     <div className={`fixed inset-0 z-50 ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
       <div
@@ -412,6 +493,21 @@ function CartDrawer() {
           ))}
         </div>
         <div className="border-t pt-5">
+          {stockChanged && (
+            <p className="mb-4 border border-red-700/20 bg-red-50 p-3 text-xs text-red-800">
+              {tr('Остаток некоторых товаров изменился. Проверьте количество перед заказом.', 'Some stock levels changed. Review quantities before checkout.')}
+            </p>
+          )}
+          {items.length > 0 && (
+            <div className="mb-5">
+              <p className="text-xs text-muted mb-2">
+                {total >= freeShippingAt
+                  ? tr('Бесплатная доставка доступна', 'You unlocked free delivery')
+                  : tr(`До бесплатной доставки: ${formatPrice(freeShippingAt - total)}`, `${formatPrice(freeShippingAt - total)} away from free delivery`)}
+              </p>
+              <div className="h-1.5 bg-black/10 overflow-hidden"><div className="h-full bg-gold transition-all duration-500" style={{ width: `${shippingProgress}%` }} /></div>
+            </div>
+          )}
           <div className="flex justify-between text-lg mb-5">
             <b>{tr('Итого', 'Total')}</b>
             <b>{formatPrice(total)}</b>

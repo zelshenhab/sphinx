@@ -254,13 +254,13 @@ export function LanguageSwitch() {
     >
       <button
         onClick={() => context.setLanguage('ru')}
-        className={`px-2 py-1 rounded-full ${context.language === 'ru' ? 'bg-ink text-white' : ''}`}
+        className={`px-1.5 sm:px-2 py-1 rounded-full ${context.language === 'ru' ? 'bg-ink text-white' : ''}`}
       >
         RU
       </button>
       <button
         onClick={() => context.setLanguage('en')}
-        className={`px-2 py-1 rounded-full ${context.language === 'en' ? 'bg-ink text-white' : ''}`}
+        className={`px-1.5 sm:px-2 py-1 rounded-full ${context.language === 'en' ? 'bg-ink text-white' : ''}`}
       >
         EN
       </button>

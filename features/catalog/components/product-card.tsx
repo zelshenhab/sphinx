@@ -52,6 +52,7 @@ export function ProductCard({ product }: { product: Product }) {
           src={primaryImage}
           alt={product.name}
           fill
+          sizes="(max-width: 1023px) 50vw, 25vw"
           className="object-cover transition duration-700 group-hover:scale-[1.035]"
         />
         {secondaryImage && secondaryImage !== primaryImage && (
@@ -59,6 +60,7 @@ export function ProductCard({ product }: { product: Product }) {
             src={secondaryImage}
             alt=""
             fill
+            sizes="(max-width: 1023px) 50vw, 25vw"
             className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100 hidden md:block"
           />
         )}

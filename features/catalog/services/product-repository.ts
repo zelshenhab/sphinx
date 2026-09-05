@@ -247,12 +247,39 @@ async function saveProductMetadata(supabase: ReturnType<typeof createClient>, pr
   if (error) throw error;
 }
 export async function uploadProductImage(file: File) {
-  const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const optimizedFile = await optimizeProductImage(file);
+  const extension = optimizedFile.name.split('.').pop()?.toLowerCase() || 'webp';
   const path = `${crypto.randomUUID()}.${extension}`;
   const supabase = createClient();
   const { error } = await supabase.storage
     .from('product-images')
-    .upload(path, file, { cacheControl: '3600' });
+    .upload(path, optimizedFile, { cacheControl: '31536000', contentType: optimizedFile.type });
   if (error) throw error;
   return supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+}
+
+async function optimizeProductImage(file: File): Promise<File> {
+  if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxDimension = 1800;
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext('2d');
+    if (!context) return file;
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/webp', 0.86),
+    );
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), {
+      type: 'image/webp',
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
 }
