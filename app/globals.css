@@ -281,8 +281,8 @@ main > section:not(:first-child) {
   contain-intrinsic-size: 700px;
 }
 .admin-card {
-  content-visibility: auto;
-  contain-intrinsic-size: 300px;
+  content-visibility: visible;
+  contain: none;
 }
 @media (prefers-reduced-motion: reduce) {
   html {
