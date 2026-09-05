@@ -38,6 +38,10 @@ export default function Home() {
     .slice(0, 4);
   const heroImage =
     banner?.image || featuredCollection?.image || '/assets/collections/tshirts-collection.png';
+  const heroTitle = banner ? bannerTitle : featuredCollectionName || 'SPHINX';
+  const heroSubtitle = banner ? bannerSubtitle : 'The Guardian · 2026';
+  const heroCta = banner ? bannerCta : language === 'en' ? 'Shop collection' : 'Смотреть коллекцию';
+  const hasHeroContent = Boolean(heroTitle || heroSubtitle || heroCta);
   return (
     <main>
       <section className="min-h-[64svh] sm:min-h-[72vh] bg-sand relative overflow-hidden flex items-end text-white">
@@ -59,22 +63,20 @@ export default function Home() {
             className="object-cover hero-image md:hidden"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/5" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-        <div className="container-x relative w-full pb-12 sm:pb-20 md:pb-24">
-          <p className="eyebrow mb-4 sm:mb-6 text-white/75">{bannerSubtitle || 'The Guardian · 2026'}</p>
-          <h1 className="display text-5xl sm:text-6xl md:text-7xl tracking-[.06em] hero-wordmark max-w-3xl">
-            {bannerTitle || featuredCollectionName || 'SPHINX'}
-          </h1>
-          <p className="text-lg sm:text-xl md:text-2xl display mt-4 max-w-lg text-white/90">
-            {language === 'en' ? 'Ancient power. Made for now.' : 'Древняя сила. Создано для настоящего.'}
-          </p>
-          <div className="flex gap-3 mt-7 sm:mt-9">
-            <Link href={banner?.ctaUrl || '/shop'} className="btn btn-light">
-              {bannerCta || 'Смотреть коллекцию'}
-            </Link>
+        {hasHeroContent && <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/5" />}
+        {hasHeroContent && <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />}
+        {hasHeroContent && (
+          <div className="container-x relative w-full pb-12 sm:pb-20 md:pb-24">
+            {heroSubtitle && <p className="eyebrow mb-4 sm:mb-6 text-white/75">{heroSubtitle}</p>}
+            {heroTitle && <h1 className="display text-5xl sm:text-6xl md:text-7xl tracking-[.06em] hero-wordmark max-w-3xl">{heroTitle}</h1>}
+            {heroTitle && !banner && (
+              <p className="text-lg sm:text-xl md:text-2xl display mt-4 max-w-lg text-white/90">
+                {language === 'en' ? 'Ancient power. Made for now.' : 'Древняя сила. Создано для настоящего.'}
+              </p>
+            )}
+            {heroCta && <div className="flex gap-3 mt-7 sm:mt-9"><Link href={banner?.ctaUrl || '/shop'} className="btn btn-light">{heroCta}</Link></div>}
           </div>
-        </div>
+        )}
       </section>
       <section className="container-x py-14 sm:py-20 grid sm:grid-cols-3 border-b border-black/10">
         {(language === 'en'

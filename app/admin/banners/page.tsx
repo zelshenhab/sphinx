@@ -16,8 +16,8 @@ const emptyBanner: BannerDraft = {
   subtitleEn: '',
   image: '',
   mobileImage: '',
-  ctaText: 'Смотреть коллекцию',
-  ctaTextEn: 'Shop collection',
+  ctaText: '',
+  ctaTextEn: '',
   ctaUrl: '/shop',
   location: 'home',
   startsAt: '',
@@ -74,7 +74,12 @@ export default function BannersPage() {
     }
   };
   const save = async () => {
-    if (!draft.title.trim() || !draft.image.trim()) return notify('required_fields', 'warning');
+    if (!draft.image.trim()) {
+      return notify(
+        { ru: 'Добавьте изображение баннера', en: 'Add a banner image' },
+        'warning',
+      );
+    }
     try {
       await saveBanner({ id: selected?.id, ...draft });
       await refresh();
@@ -100,7 +105,7 @@ export default function BannersPage() {
         <div className="bg-sand/50 border border-black/10 p-4 sm:p-5 mb-7">
           <div className="grid md:grid-cols-2 gap-4">
             <Field
-              label="Title *"
+              label="Title (optional)"
               value={draft.title}
               change={(title) => setDraft({ ...draft, title })}
             />
@@ -200,11 +205,13 @@ export default function BannersPage() {
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent" />
               <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-8">
-                <p className="text-xs tracking-widest uppercase">{draft.subtitle}</p>
-                <p className="display text-3xl sm:text-5xl mt-2">{draft.title || 'Banner title'}</p>
-                <span className="mt-4 border border-white w-fit px-4 py-2 text-xs">
-                  {draft.ctaText}
-                </span>
+                {draft.subtitle && <p className="text-xs tracking-widest uppercase">{draft.subtitle}</p>}
+                {draft.title && <p className="display text-3xl sm:text-5xl mt-2">{draft.title}</p>}
+                {draft.ctaText && (
+                  <span className="mt-4 border border-white w-fit px-4 py-2 text-xs">
+                    {draft.ctaText}
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -233,7 +240,7 @@ export default function BannersPage() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <b className="block truncate">{banner.title}</b>
+                  <b className="block truncate">{banner.title || 'Image-only banner'}</b>
                   <p className="text-xs text-muted mt-1">
                     {banner.location ?? 'home'} · {banner.active ? 'Active' : 'Hidden'} · Order{' '}
                     {banner.sortOrder ?? 0}

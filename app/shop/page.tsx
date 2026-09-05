@@ -71,6 +71,11 @@ export default function Shop() {
     const notEnded = !item.endsAt || new Date(item.endsAt).getTime() >= now;
     return item.active && item.location === 'shop' && started && notEnded;
   });
+  const bannerTitle = language === 'en' && banner?.titleEn ? banner.titleEn : banner?.title;
+  const bannerSubtitle =
+    language === 'en' && banner?.subtitleEn ? banner.subtitleEn : banner?.subtitle;
+  const bannerCta = language === 'en' && banner?.ctaTextEn ? banner.ctaTextEn : banner?.ctaText;
+  const hasBannerContent = Boolean(bannerTitle || bannerSubtitle || bannerCta);
   const list = [...products]
     .filter((product) => availableCategories.some((category) => category.slug === product.category))
     .filter((p) => cat === 'all' || p.category === cat)
@@ -142,18 +147,14 @@ export default function Shop() {
               className="object-cover md:hidden"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 to-transparent" />
-          <div className="relative p-7 sm:p-10">
-            <p className="eyebrow">
-              {language === 'en' && banner.subtitleEn ? banner.subtitleEn : banner.subtitle}
-            </p>
-            <h2 className="display text-4xl sm:text-5xl mt-3">
-              {language === 'en' && banner.titleEn ? banner.titleEn : banner.title}
-            </h2>
-            <Link href={banner.ctaUrl} className="btn btn-light mt-6">
-              {language === 'en' && banner.ctaTextEn ? banner.ctaTextEn : banner.ctaText}
-            </Link>
-          </div>
+          {hasBannerContent && <div className="absolute inset-0 bg-gradient-to-r from-black/75 to-transparent" />}
+          {hasBannerContent && (
+            <div className="relative p-7 sm:p-10">
+              {bannerSubtitle && <p className="eyebrow">{bannerSubtitle}</p>}
+              {bannerTitle && <h2 className="display text-4xl sm:text-5xl mt-3">{bannerTitle}</h2>}
+              {bannerCta && <Link href={banner.ctaUrl || '/shop'} className="btn btn-light mt-6">{bannerCta}</Link>}
+            </div>
+          )}
         </section>
       )}
       <p className="eyebrow text-brown">SPHINX Store</p>

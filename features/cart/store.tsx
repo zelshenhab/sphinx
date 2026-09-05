@@ -8,7 +8,6 @@ import {
   Gem,
   Home,
   LayoutGrid,
-  Languages,
   Menu,
   Minus,
   Plus,
@@ -134,7 +133,7 @@ const nav = siteConfig.navigation.map(({ label, href }) => [label, href] as cons
 export function Header() {
   const { count, setOpen } = useCart();
   const { categories, settings } = useCatalog();
-  const { language, setLanguage } = useLanguage();
+  const { language } = useLanguage();
   const visibleNav = [
     ...nav,
     ...categories
@@ -207,19 +206,9 @@ export function Header() {
             ))}
           </nav>
           <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
-            <div className="hidden sm:block">
+            <div>
               <LanguageSwitch />
             </div>
-            <button
-              type="button"
-              onClick={() => setLanguage(language === 'en' ? 'ru' : 'en')}
-              aria-label={language === 'en' ? 'Switch to Russian' : 'Switch to English'}
-              title={language === 'en' ? 'Русский' : 'English'}
-              className="inline-flex sm:hidden min-w-9 h-9 items-center justify-center gap-1 rounded-full border border-black/15"
-            >
-              <Languages size={16} />
-              <span className="text-[8px] font-semibold">{language === 'en' ? 'RU' : 'EN'}</span>
-            </button>
             <button onClick={() => setSearchOpen(true)} aria-label="Search" className="p-2">
               <Search size={18} />
             </button>
