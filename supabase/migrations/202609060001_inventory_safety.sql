@@ -1,5 +1,5 @@
 begin;
-alter table public.products add column size_guide jsonb not null default '[]';
+alter table public.products add column if not exists size_guide jsonb not null default '[]';
 
 -- Keep a private, append-only history of inventory writes, including order reservations.
 create table public.inventory_movements (
