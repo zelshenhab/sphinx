@@ -27,6 +27,7 @@ const blank = {
   material: '100% хлопок',
   gsm: '240 GSM',
   fit: 'Unisex Oversized',
+  sizeGuide: '',
   colors: 'Black, White, Sand',
   sizes: 'XS, S, M, L, XL, XXL',
   image: '/assets/products/egyptian-power-dark.svg',
@@ -171,7 +172,7 @@ export default function Products() {
       try {
         const remote = await listProducts();
         setRemoteProducts(remote);
-        if (remote.length) setList(remote);
+        setList(remote);
       } catch (loadError) {
         console.info('[SPHINX_ADMIN_LOCAL_FALLBACK]', loadError);
       }
@@ -184,15 +185,32 @@ export default function Products() {
   };
   const quickUpdate = async (product: Product, changes: Partial<Product>) => {
     const next = { ...product, ...changes };
-    save(list.map((item) => item.id === product.id ? next : item));
-    try { await updateProduct(next); await refresh(); } catch (updateError) { console.info('[SPHINX_QUICK_UPDATE_LOCAL]', updateError); }
+    try {
+      const saved = await updateProduct(next);
+      save(list.map((item) => (item.id === product.id ? saved : item)));
+      await refresh();
+    } catch {
+      notify(
+        { ru: 'Не удалось сохранить. Повторите попытку.', en: 'Could not save. Please retry.' },
+        'error',
+      );
+    }
   };
   const moveProduct = async (targetId: string) => {
     if (!draggedId || draggedId === targetId) return;
-    const next = [...list]; const from = next.findIndex((item) => item.id === draggedId); const to = next.findIndex((item) => item.id === targetId);
+    const next = [...list];
+    const from = next.findIndex((item) => item.id === draggedId);
+    const to = next.findIndex((item) => item.id === targetId);
     if (from < 0 || to < 0) return;
-    const [moved] = next.splice(from,1); next.splice(to,0,moved); save(next); setDraggedId('');
-    try { await saveProductOrder(next.map((item) => item.id)); } catch (orderError) { console.info('[SPHINX_PRODUCT_ORDER_LOCAL]', orderError); }
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setDraggedId('');
+    try {
+      await saveProductOrder(next.map((item) => item.id));
+      save(next);
+    } catch {
+      notify({ ru: 'Не удалось сохранить порядок.', en: 'Could not save order.' }, 'error');
+    }
   };
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,6 +226,21 @@ export default function Products() {
       return;
     }
     const existingProduct = editingId ? list.find((item) => item.id === editingId) : undefined;
+    const guide = form.sizeGuide
+      .split('\n')
+      .filter((line) => line.trim())
+      .map((line) => line.split(',').map((value) => value.trim()));
+    if (
+      guide.some(
+        (row) =>
+          row.length !== 4 ||
+          !selectedSizes.includes(row[0]) ||
+          row.slice(1).some((value) => !Number.isFinite(Number(value)) || Number(value) <= 0),
+      )
+    ) {
+      setError('Size guide: use one row per size: M, 56, 71, 22 (centimeters).');
+      return;
+    }
     const normalizedSizeStock = Object.fromEntries(
       selectedSizes.map((size) => [
         size,
@@ -244,6 +277,7 @@ export default function Products() {
       material: form.material,
       gsm: form.gsm || undefined,
       fit: form.fit,
+      sizeGuide: guide,
       colors: form.colors
         .split(',')
         .map((x) => x.trim())
@@ -260,7 +294,13 @@ export default function Products() {
       isSale: form.isSale,
     };
     try {
-      const remoteProduct = editingId ? await updateProduct(p) : await createProduct(p);
+      const previousStock = existingProduct?.variantStock ?? {};
+      const stockChanged = Object.keys({ ...previousStock, ...normalizedVariantStock }).some(
+        (key) => previousStock[key] !== normalizedVariantStock[key],
+      );
+      const remoteProduct = editingId
+        ? await updateProduct(p, stockChanged ? previousStock : undefined)
+        : await createProduct(p);
       save(
         editingId
           ? list.map((item) => (item.id === editingId ? remoteProduct : item))
@@ -269,14 +309,14 @@ export default function Products() {
       await refresh();
     } catch (createError) {
       console.error('[SPHINX_PRODUCT_CREATE_ERROR]', createError);
-      save(editingId ? list.map((item) => (item.id === editingId ? p : item)) : [p, ...list]);
       notify(
         {
-          ru: 'Supabase недоступен — товар сохранён локально',
-          en: 'Supabase unavailable — product saved locally',
+          ru: 'Не удалось сохранить товар. Проверьте соединение и повторите попытку.',
+          en: 'Product was not saved. Check your connection and retry.',
         },
-        'warning',
+        'error',
       );
+      return;
     }
     setForm(blank);
     setColorImages({});
@@ -694,6 +734,16 @@ export default function Products() {
             <Field label="GSM" value={form.gsm} change={(v) => setForm({ ...form, gsm: v })} />
             <Field label="Fit" value={form.fit} change={(v) => setForm({ ...form, fit: v })} />
             <label className="md:col-span-2 xl:col-span-3">
+              <T>Size guide: size, chest, length, sleeve (cm) — one row per size</T>
+              <textarea
+                className="field mt-2"
+                rows={5}
+                value={form.sizeGuide}
+                placeholder="M, 56, 71, 22"
+                onChange={(event) => setForm({ ...form, sizeGuide: event.target.value })}
+              />
+            </label>
+            <label className="md:col-span-2 xl:col-span-3">
               <T>Description</T>
               <textarea
                 className="field mt-2"
@@ -729,7 +779,34 @@ export default function Products() {
       {selectedIds.length > 0 && (
         <div className="sticky top-4 z-20 bg-ink text-white p-4 mb-5 flex flex-wrap items-center justify-between gap-3 shadow-xl">
           <span className="text-sm">Выбрано: {selectedIds.length}</span>
-          <button className="btn bg-red-700 text-white" onClick={async () => { if (!window.confirm(`Удалить выбранные товары (${selectedIds.length})?`)) return; await Promise.all(selectedIds.map((id) => deleteProduct(id))); save(list.filter((item) => !selectedIds.includes(item.id))); setSelectedIds([]); await refresh(); }}>Удалить выбранные</button>
+          <button
+            className="btn bg-red-700 text-white"
+            onClick={async () => {
+              if (!window.confirm(`Удалить выбранные товары (${selectedIds.length})?`)) return;
+              try {
+                await Promise.all(selectedIds.map((id) => deleteProduct(id)));
+                save(list.filter((item) => !selectedIds.includes(item.id)));
+                setSelectedIds([]);
+                await refresh();
+                notify(
+                  { ru: 'Выбранные товары удалены.', en: 'Selected products deleted.' },
+                  'info',
+                );
+              } catch (bulkError) {
+                console.info('[SPHINX_PRODUCTS_BULK_DELETE_ERROR]', bulkError);
+                await refresh();
+                notify(
+                  {
+                    ru: 'Не все товары удалось удалить. Список обновлён.',
+                    en: 'Some products could not be deleted. The list was refreshed.',
+                  },
+                  'error',
+                );
+              }
+            }}
+          >
+            Удалить выбранные
+          </button>
         </div>
       )}
       <div className="space-y-8">
@@ -745,25 +822,72 @@ export default function Products() {
               <table className="w-full text-sm text-left min-w-[760px]">
                 <thead className="text-xs text-muted">
                   <tr>
-                    {['Select', 'Image', 'Name', 'Price', 'Featured', 'Status', 'Stock', 'Actions'].map(
-                      (column) => (
-                        <th className="py-3" key={column}>
-                          {column}
-                        </th>
-                      ),
-                    )}
+                    {[
+                      'Select',
+                      'Image',
+                      'Name',
+                      'Price',
+                      'Featured',
+                      'Status',
+                      'Stock',
+                      'Actions',
+                    ].map((column) => (
+                      <th className="py-3" key={column}>
+                        {column}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {group.products.map((p) => (
-                    <tr draggable onDragStart={() => setDraggedId(p.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => void moveProduct(p.id)} className="border-t cursor-grab active:cursor-grabbing" key={p.id}>
-                      <td><input aria-label={`Select ${p.name}`} type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => setSelectedIds((current) => current.includes(p.id) ? current.filter((id) => id !== p.id) : [...current,p.id])} /></td>
+                    <tr
+                      draggable
+                      onDragStart={() => setDraggedId(p.id)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => void moveProduct(p.id)}
+                      className="border-t cursor-grab active:cursor-grabbing"
+                      key={p.id}
+                    >
+                      <td>
+                        <input
+                          aria-label={`Select ${p.name}`}
+                          type="checkbox"
+                          checked={selectedIds.includes(p.id)}
+                          onChange={() =>
+                            setSelectedIds((current) =>
+                              current.includes(p.id)
+                                ? current.filter((id) => id !== p.id)
+                                : [...current, p.id],
+                            )
+                          }
+                        />
+                      </td>
                       <td className="py-3">
                         <Image src={p.images[0]} alt="" width={46} height={56} />
                       </td>
                       <td>{p.name}</td>
-                      <td><input aria-label={`Price for ${p.name}`} className="w-24 border px-2 py-1" type="number" defaultValue={p.price} onBlur={(event) => { const price=Number(event.target.value); if (price >= 0 && price !== p.price) void quickUpdate(p,{price}); }} /></td>
-                      <td><input aria-label={`Featured ${p.name}`} type="checkbox" checked={p.featured} onChange={(event) => void quickUpdate(p,{featured:event.target.checked})} /></td>
+                      <td>
+                        <input
+                          aria-label={`Price for ${p.name}`}
+                          className="w-24 border px-2 py-1"
+                          type="number"
+                          defaultValue={p.price}
+                          onBlur={(event) => {
+                            const price = Number(event.target.value);
+                            if (price >= 0 && price !== p.price) void quickUpdate(p, { price });
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          aria-label={`Featured ${p.name}`}
+                          type="checkbox"
+                          checked={p.featured}
+                          onChange={(event) =>
+                            void quickUpdate(p, { featured: event.target.checked })
+                          }
+                        />
+                      </td>
                       <td className="text-green-700">Active</td>
                       <td
                         className={
@@ -774,7 +898,9 @@ export default function Products() {
                               : 'text-green-700'
                         }
                       >
-                        <input aria-label={`Stock for ${p.name}`} className="w-20 border px-2 py-1" type="number" min="0" defaultValue={p.stockQuantity ?? 20} onBlur={(event) => { const stockQuantity=Math.max(0,Number(event.target.value)); if (stockQuantity !== (p.stockQuantity ?? 20)) void quickUpdate(p,{stockQuantity,sizeStock:distributeStock(p.sizes,stockQuantity),variantStock:distributeVariantStock(p.colors,p.sizes,stockQuantity)}); }} /> pcs
+                        <span title="Edit stock by color and size in the product editor">
+                          {p.stockQuantity ?? 0} pcs
+                        </span>
                       </td>
                       <td className="space-x-3">
                         <button
@@ -802,6 +928,9 @@ export default function Products() {
                               material: p.material,
                               gsm: p.gsm || '',
                               fit: p.fit,
+                              sizeGuide: (p.sizeGuide ?? [])
+                                .map((row) => row.join(', '))
+                                .join('\n'),
                               colors: p.colors.join(', '),
                               sizes: p.sizes.join(', '),
                               image: p.images[0] || blank.image,
@@ -829,7 +958,14 @@ export default function Products() {
                               save([...list, remoteCopy]);
                               await refresh();
                             } catch {
-                              save([...list, copy]);
+                              notify(
+                                {
+                                  ru: 'Не удалось создать копию.',
+                                  en: 'Could not duplicate product.',
+                                },
+                                'error',
+                              );
+                              return;
                             }
                             notify('product_duplicated', 'success');
                           }}
@@ -845,6 +981,14 @@ export default function Products() {
                               await refresh();
                             } catch (deleteError) {
                               console.info('[SPHINX_PRODUCT_DELETE_LOCAL_ONLY]', deleteError);
+                              notify(
+                                {
+                                  ru: 'Не удалось удалить товар.',
+                                  en: 'Could not delete product.',
+                                },
+                                'error',
+                              );
+                              return;
                             }
                             save(list.filter((item) => item.id !== p.id));
                             notify('product_deleted', 'info');

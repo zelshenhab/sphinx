@@ -79,8 +79,8 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const lastFetchedAt = useRef(0);
   const applySnapshot = useCallback((snapshot: Omit<CatalogSnapshot, 'fetchedAt'>) => {
-    if (snapshot.products.length) setProducts(snapshot.products);
-    if (snapshot.categories.length) setCategories(snapshot.categories);
+    setProducts(snapshot.products);
+    setCategories(snapshot.categories);
     setCollections(snapshot.collections);
     setBanners(snapshot.banners);
     const mergedSettings = { ...defaultSettings, ...snapshot.settings };
@@ -90,16 +90,13 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
   const refreshInventory = useCallback(async (cached?: CatalogSnapshot | null) => {
     try {
       const latestProducts = await fetchInventory();
-      if (latestProducts.length) setProducts(latestProducts);
+      setProducts(latestProducts);
       const previous =
         cached ?? clientStorage.get<CatalogSnapshot | null>(storageKeys.catalog, null);
       if (previous) {
-        const fetchedAt = Date.now();
-        lastFetchedAt.current = fetchedAt;
         clientStorage.set(storageKeys.catalog, {
           ...previous,
           products: latestProducts,
-          fetchedAt,
         });
       }
     } catch (error) {

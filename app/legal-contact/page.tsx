@@ -1,8 +1,16 @@
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal/legal-page';
 import { TELEGRAM_USERNAME } from '@/config/site';
+import { createClient } from '@/core/supabase/server';
 export const metadata: Metadata = { title: 'Данные продавца | SPHINX' };
-export default function LegalContact() {
+export default async function LegalContact() {
+  const db = await createClient();
+  const { data } = await db
+    .from('store_settings')
+    .select('value')
+    .eq('key', 'seller_details')
+    .maybeSingle();
+  const sellerDetails = typeof data?.value === 'string' ? data.value.trim() : '';
   return (
     <LegalPage
       title={{ ru: 'Данные продавца', en: 'Seller information' }}
@@ -32,8 +40,12 @@ export default function LegalContact() {
           title: { ru: 'Реквизиты', en: 'Legal details' },
           paragraphs: [
             {
-              ru: 'Полное наименование продавца, адрес и регистрационные данные должны быть добавлены владельцем магазина до начала продаж.',
-              en: 'The store owner must add the seller’s full legal name, address and registration details before sales begin.',
+              ru:
+                sellerDetails ||
+                'Реквизиты продавца пока не указаны. Свяжитесь с нами перед оформлением заказа.',
+              en:
+                sellerDetails ||
+                'Seller details have not yet been provided. Please contact us before placing an order.',
             },
           ],
         },

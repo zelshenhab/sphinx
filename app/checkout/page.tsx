@@ -1,17 +1,36 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { toPng } from 'html-to-image';
 import { Check, CheckCircle2, Send } from 'lucide-react';
 import { getVariantImage, useCart } from '@/features/cart';
 import { formatPrice, TELEGRAM_USERNAME } from '@/config/site';
-import { createOrder } from '@/core/supabase/store';
+import { createOrder, resumeOrder, type OrderReceipt } from '@/core/supabase/store';
 import { useNotification } from '@/features/notifications';
 import { useLanguage } from '@/features/i18n';
 import { useCatalog } from '@/features/catalog';
 export default function Checkout() {
-  const { items, total, clear } = useCart();
+  const { items: cartItems, total: cartTotal, clear } = useCart();
+  const [receipt, setReceipt] = useState<OrderReceipt | null>(null);
+  const [coupon, setCoupon] = useState('');
+  const requestToken = useRef('');
+  const items = receipt
+    ? receipt.lines.map((line) => ({
+        color: line.color,
+        size: line.size,
+        quantity: line.quantity,
+        product: {
+          ...cartItems.find((item) => item.product.id === line.productId)?.product,
+          id: line.productId,
+          name: line.name,
+          price: line.unitPrice,
+          images: [line.image],
+          colorImages: { [line.color]: [line.image] },
+        } as (typeof cartItems)[number]['product'],
+      }))
+    : cartItems;
+  const total = receipt?.total ?? cartTotal;
   const { notify } = useNotification();
   const router = useRouter();
   const { language } = useLanguage();
@@ -31,21 +50,46 @@ export default function Checkout() {
   });
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [orderId, setOrderId] = useState('');
-  const orderReference = orderId
-    ? `SPX-${orderId.replace(/[^a-z0-9]/gi, '').slice(-6).toUpperCase()}`
-    : '';
+  const orderReference = receipt?.reference ?? '';
   const card = useRef<HTMLDivElement>(null);
-  const fullAddress = [
-    form.city,
-    form.street && `${tr('ул.', 'St.')} ${form.street}`,
-    form.building && `${tr('дом', 'building')} ${form.building}`,
-    form.entrance && `${tr('подъезд', 'entrance')} ${form.entrance}`,
-    form.floor && `${tr('этаж', 'floor')} ${form.floor}`,
-    form.apartment && `${tr('кв.', 'apt.')} ${form.apartment}`,
-  ]
-    .filter(Boolean)
-    .join(', ');
+  useEffect(() => {
+    let active = true;
+    const token = sessionStorage.getItem('sphinx_order_token');
+    if (!token) return;
+    requestToken.current = token;
+    void resumeOrder(token)
+      .then((saved) => {
+        if (!active) return;
+        if (!saved) {
+          sessionStorage.removeItem('sphinx_order_token');
+          requestToken.current = '';
+          return;
+        }
+        setReceipt(saved);
+        setForm((current) => ({ ...current, ...saved.customer }));
+        setReady(true);
+      })
+      .catch((resumeError) => {
+        console.info('[SPHINX_ORDER_RESUME_ERROR]', resumeError);
+        sessionStorage.removeItem('sphinx_order_token');
+        requestToken.current = '';
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const fullAddress =
+    receipt?.customer.city ??
+    [
+      form.city,
+      form.street && `${tr('ул.', 'St.')} ${form.street}`,
+      form.building && `${tr('дом', 'building')} ${form.building}`,
+      form.entrance && `${tr('подъезд', 'entrance')} ${form.entrance}`,
+      form.floor && `${tr('этаж', 'floor')} ${form.floor}`,
+      form.apartment && `${tr('кв.', 'apt.')} ${form.apartment}`,
+    ]
+      .filter(Boolean)
+      .join(', ');
   const text = [
     '━━━━━━━━━━━━━━━━━━',
     '🛍️ SPHINX — NEW ORDER',
@@ -70,7 +114,7 @@ export default function Checkout() {
   ]
     .filter((line, index, lines) => line !== '' || lines[index - 1] !== '')
     .join('\n');
-  const telegramUrl = `https://t.me/${TELEGRAM_USERNAME}?text=${encodeURIComponent(text)}`;
+  const telegramUrl = `https://t.me/${settings.telegram || TELEGRAM_USERNAME}?text=${encodeURIComponent(text)}`;
   const sendToTelegram = () => {
     window.open(telegramUrl, '_blank', 'noopener,noreferrer');
   };
@@ -91,6 +135,7 @@ export default function Checkout() {
       }),
     );
     clear();
+    sessionStorage.removeItem('sphinx_order_token');
     router.push('/order-success');
   };
   const download = async () => {
@@ -102,6 +147,7 @@ export default function Checkout() {
     a.click();
   };
   const submitOrder = async () => {
+    if (submitting || receipt) return;
     if (
       !items.length ||
       !form.name.trim() ||
@@ -116,7 +162,9 @@ export default function Checkout() {
     }
     setSubmitting(true);
     try {
-      const id = await createOrder(
+      requestToken.current ||= sessionStorage.getItem('sphinx_order_token') || crypto.randomUUID();
+      sessionStorage.setItem('sphinx_order_token', requestToken.current);
+      const saved = await createOrder(
         {
           name: form.name,
           phone: form.phone,
@@ -125,16 +173,45 @@ export default function Checkout() {
           comment: form.comment,
         },
         items,
+        requestToken.current,
+        coupon.trim(),
       );
-      setOrderId(id);
+      setReceipt(saved);
+      setForm((current) => ({ ...current, ...saved.customer }));
       setReady(true);
       notify({ ru: 'Заказ сохранён', en: 'Order saved' }, 'success');
     } catch (error) {
       console.error('[SPHINX_ORDER_CREATE_ERROR]', error);
+      const message =
+        error && typeof error === 'object' && 'message' in error ? String(error.message) : '';
+      if (message.includes('RESERVATION_EXPIRED')) {
+        requestToken.current = '';
+        sessionStorage.removeItem('sphinx_order_token');
+      }
       notify(
         {
-          ru: 'Не удалось сохранить заказ. Попробуйте ещё раз',
-          en: 'Could not save the order. Please try again',
+          ru: message.includes('stock')
+            ? 'Выбранный вариант закончился. Проверьте корзину.'
+            : message.includes('COUPON')
+              ? 'Промокод недействителен или условия не выполнены.'
+              : message.includes('EXPIRED')
+                ? 'Резерв истёк. Проверьте корзину и повторите заказ.'
+                : message.includes('PAUSED')
+                  ? 'Приём заказов приостановлен.'
+                  : message.includes('TOO_MANY')
+                    ? 'Слишком много заказов. Попробуйте позже.'
+                    : 'Не удалось сохранить заказ. Проверьте данные и попробуйте ещё раз.',
+          en: message.includes('stock')
+            ? 'This variant is no longer available. Review your cart.'
+            : message.includes('COUPON')
+              ? 'Coupon is invalid or its conditions are not met.'
+              : message.includes('EXPIRED')
+                ? 'Reservation expired. Review your cart and retry.'
+                : message.includes('PAUSED')
+                  ? 'Orders are paused.'
+                  : message.includes('TOO_MANY')
+                    ? 'Too many orders. Please try later.'
+                    : 'Could not save your order. Check your details and retry.',
         },
         'error',
       );
@@ -147,20 +224,26 @@ export default function Checkout() {
       <p className="eyebrow text-brown">{tr('Заказ через Telegram', 'Telegram checkout')}</p>
       <h1 className="display text-5xl mt-3">{tr('Оформление заказа', 'Checkout')}</h1>
       <ol className="grid grid-cols-3 max-w-2xl mt-9" aria-label="Checkout progress">
-        {[
-          tr('Корзина', 'Cart'),
-          tr('Данные', 'Details'),
-          'Telegram',
-        ].map((label, index) => {
+        {[tr('Корзина', 'Cart'), tr('Данные', 'Details'), 'Telegram'].map((label, index) => {
           const complete = index === 0 || (index === 1 && ready);
           const active = index === (ready ? 2 : 1);
           return (
             <li key={label} className="relative text-center">
-              {index > 0 && <span className={`absolute top-4 right-1/2 w-full h-px ${complete || active ? 'bg-ink' : 'bg-black/15'}`} />}
-              <span className={`relative mx-auto w-8 h-8 rounded-full grid place-items-center text-[10px] border ${complete ? 'bg-ink text-white border-ink' : active ? 'border-ink bg-white' : 'border-black/15 bg-ivory text-muted'}`}>
+              {index > 0 && (
+                <span
+                  className={`absolute top-4 right-1/2 w-full h-px ${complete || active ? 'bg-ink' : 'bg-black/15'}`}
+                />
+              )}
+              <span
+                className={`relative mx-auto w-8 h-8 rounded-full grid place-items-center text-[10px] border ${complete ? 'bg-ink text-white border-ink' : active ? 'border-ink bg-white' : 'border-black/15 bg-ivory text-muted'}`}
+              >
                 {complete ? <Check size={14} /> : index + 1}
               </span>
-              <span className={`block text-[10px] uppercase tracking-wider mt-2 ${active ? 'font-semibold' : 'text-muted'}`}>{label}</span>
+              <span
+                className={`block text-[10px] uppercase tracking-wider mt-2 ${active ? 'font-semibold' : 'text-muted'}`}
+              >
+                {label}
+              </span>
             </li>
           );
         })}
@@ -168,7 +251,10 @@ export default function Checkout() {
       <div className="grid lg:grid-cols-2 gap-12 mt-12">
         <section>
           <h2 className="display text-2xl mb-6">{tr('Контактные данные', 'Contact details')}</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <fieldset
+            disabled={ready || submitting}
+            className="grid sm:grid-cols-2 gap-4 disabled:opacity-70"
+          >
             {Object.entries({
               name: tr('Имя', 'Name'),
               phone: tr('Телефон', 'Phone'),
@@ -210,7 +296,16 @@ export default function Checkout() {
               value={form.comment}
               onChange={(e) => setForm({ ...form, comment: e.target.value })}
             />
-          </div>
+            <label className="sm:col-span-2 text-sm">
+              {tr('Промокод (необязательно)', 'Coupon (optional)')}
+              <input
+                className="field mt-2"
+                value={coupon}
+                onChange={(event) => setCoupon(event.target.value)}
+                autoCapitalize="characters"
+              />
+            </label>
+          </fieldset>
           <button
             disabled={
               settings.orders_enabled === 'false' ||
@@ -239,7 +334,19 @@ export default function Checkout() {
               <h2 className="display text-3xl">
                 {tr('Заказ успешно создан!', 'Order created successfully!')}
               </h2>
-              {orderReference && <p className="inline-block bg-white border border-black/10 px-4 py-2 text-sm font-medium mt-4">{tr('Номер заказа', 'Order number')}: {orderReference}</p>}
+              {orderReference && (
+                <p className="inline-block bg-white border border-black/10 px-4 py-2 text-sm font-medium mt-4">
+                  {tr('Номер заказа', 'Order number')}: {orderReference}
+                </p>
+              )}
+              {receipt && (
+                <p className="text-xs mt-3">
+                  {tr('Резерв до', 'Reserved until')}:{' '}
+                  {new Date(receipt.expiresAt).toLocaleString(
+                    language === 'en' ? 'en-GB' : 'ru-RU',
+                  )}
+                </p>
+              )}
               <p className="text-sm leading-7 mt-3">
                 {tr('1. Нажмите «Отправить заказ»', '1. Click “Send order”')}
                 <br />
@@ -248,14 +355,22 @@ export default function Checkout() {
                   '2. Review the prepared message and press Send',
                 )}
               </p>
-              <button className="btn btn-dark w-full mt-6 min-h-14 text-sm gap-2" onClick={sendToTelegram}>
+              <button
+                className="btn btn-dark w-full mt-6 min-h-14 text-sm gap-2"
+                onClick={sendToTelegram}
+              >
                 <Send size={18} />
                 {tr('Отправить заказ в Telegram', 'Send order to Telegram')}
               </button>
               <button className="btn border border-ink w-full mt-3" onClick={finishOrder}>
                 <Check size={17} /> {tr('Я отправил заказ', 'I sent the order')}
               </button>
-              <p className="text-[10px] text-muted text-center mt-3">{tr('Корзина очистится только после этого подтверждения', 'Your cart is cleared only after this confirmation')}</p>
+              <p className="text-[10px] text-muted text-center mt-3">
+                {tr(
+                  'Корзина очистится только после этого подтверждения',
+                  'Your cart is cleared only after this confirmation',
+                )}
+              </p>
               <div className="flex flex-wrap gap-2 mt-3">
                 <button className="btn btn-dark" onClick={download}>
                   {tr('Скачать заказ', 'Download order')}
@@ -301,6 +416,11 @@ export default function Checkout() {
               <b>{tr('Итого', 'Total')}</b>
               <b>{formatPrice(total)}</b>
             </div>
+            {!!receipt?.discount && (
+              <p className="text-sm text-red-700 mt-3">
+                {tr('Скидка', 'Discount')}: −{formatPrice(receipt.discount)}
+              </p>
+            )}
             {ready && (
               <div className="text-xs text-muted mt-5">
                 {form.name} · {fullAddress} · {form.phone}

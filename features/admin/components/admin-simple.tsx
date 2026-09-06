@@ -33,7 +33,7 @@ export function AdminSimple({ title, fields }: AdminSimpleProps) {
       if (local.length) setRows(local);
       void listAdminContent(title as ContentType)
         .then((remote) => {
-          if (remote.length) setRows(remote);
+          setRows(remote);
         })
         .catch((error) => console.info('[SPHINX_ADMIN_CONTENT_FALLBACK]', error));
     }, 0);

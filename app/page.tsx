@@ -1,4 +1,6 @@
 'use client';
+import { LocalizedText } from '@/features/i18n';
+
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -44,7 +46,10 @@ export default function Home() {
   const hasHeroContent = Boolean(heroTitle || heroSubtitle || heroCta);
   return (
     <main>
-      <section className={`min-h-[64svh] bg-sand relative overflow-hidden flex items-end ${banner?.textColor === 'dark' ? 'text-ink' : 'text-white'}`} style={{ minHeight: banner?.height ? `min(${banner.height}px, 78vh)` : undefined }}>
+      <section
+        className={`min-h-[64svh] bg-sand relative overflow-hidden flex items-end ${banner?.textColor === 'dark' ? 'text-ink' : 'text-white'}`}
+        style={{ minHeight: banner?.height ? `min(${banner.height}px, 78vh)` : undefined }}
+      >
         {heroImage && (
           <Image
             src={heroImage}
@@ -64,17 +69,47 @@ export default function Home() {
             className="object-cover hero-image md:hidden"
           />
         )}
-        {hasHeroContent && !banner?.imageContainsText && <div className="absolute inset-0 bg-gradient-to-r from-black to-transparent" style={{opacity:(banner?.gradientOpacity ?? 65)/100}} />}
+        {hasHeroContent && !banner?.imageContainsText && (
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-black to-transparent"
+            style={{ opacity: (banner?.gradientOpacity ?? 65) / 100 }}
+          />
+        )}
         {hasHeroContent && (
-          <div className={`container-x relative w-full pb-12 sm:pb-20 md:pb-24 ${banner?.textAlign === 'center' ? 'text-center' : banner?.textAlign === 'right' ? 'text-right' : 'text-left'}`}>
+          <div
+            className={`container-x relative w-full pb-12 sm:pb-20 md:pb-24 ${banner?.textAlign === 'center' ? 'text-center' : banner?.textAlign === 'right' ? 'text-right' : 'text-left'}`}
+          >
             {heroSubtitle && <p className="eyebrow mb-4 sm:mb-6 text-white/75">{heroSubtitle}</p>}
-            {heroTitle && <h1 className="display text-5xl sm:text-6xl md:text-7xl tracking-[.06em] hero-wordmark max-w-3xl">{heroTitle}</h1>}
+            {heroTitle && (
+              <h1 className="display text-5xl sm:text-6xl md:text-7xl tracking-[.06em] hero-wordmark max-w-3xl">
+                {heroTitle}
+              </h1>
+            )}
             {heroTitle && !banner && (
               <p className="text-lg sm:text-xl md:text-2xl display mt-4 max-w-lg text-white/90">
-                {language === 'en' ? 'Ancient power. Made for now.' : 'Древняя сила. Создано для настоящего.'}
+                {language === 'en'
+                  ? 'Ancient power. Made for now.'
+                  : 'Древняя сила. Создано для настоящего.'}
               </p>
             )}
-            {(heroCta || banner?.secondCtaText) && <div className={`flex gap-3 mt-7 sm:mt-9 ${banner?.textAlign === 'center' ? 'justify-center' : banner?.textAlign === 'right' ? 'justify-end' : ''}`}>{heroCta && <Link href={banner?.ctaUrl || '/shop'} className="btn btn-light">{heroCta}</Link>}{banner?.secondCtaText && <Link href={banner.secondCtaUrl || '/shop'} className="btn border border-current">{language === 'en' && banner.secondCtaTextEn ? banner.secondCtaTextEn : banner.secondCtaText}</Link>}</div>}
+            {(heroCta || banner?.secondCtaText) && (
+              <div
+                className={`flex gap-3 mt-7 sm:mt-9 ${banner?.textAlign === 'center' ? 'justify-center' : banner?.textAlign === 'right' ? 'justify-end' : ''}`}
+              >
+                {heroCta && (
+                  <Link href={banner?.ctaUrl || '/shop'} className="btn btn-light">
+                    {heroCta}
+                  </Link>
+                )}
+                {banner?.secondCtaText && (
+                  <Link href={banner.secondCtaUrl || '/shop'} className="btn border border-current">
+                    {language === 'en' && banner.secondCtaTextEn
+                      ? banner.secondCtaTextEn
+                      : banner.secondCtaText}
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -122,8 +157,10 @@ export default function Home() {
               {featuredCollectionName || 'THE GUARDIAN'}
             </h2>
             <p className="text-white/60 leading-7 mt-6">
-              {featuredCollectionDescription ||
-                'Современная форма, древние символы и одежда, созданная для настоящего.'}
+              <LocalizedText>
+                {featuredCollectionDescription ||
+                  'Современная форма, древние символы и одежда, созданная для настоящего.'}
+              </LocalizedText>
             </p>
             <Link href="/shop" className="btn btn-light mt-8 w-fit">
               {language === 'en' ? 'Explore collection' : 'Смотреть коллекцию'}
@@ -150,8 +187,12 @@ export default function Home() {
       <section className="container-x py-14 sm:py-24">
         <div className="flex justify-between items-end mb-10">
           <div>
-            <p className="eyebrow text-brown">Обзор</p>
-            <h2 className="display text-4xl mt-3">По категориям</h2>
+            <p className="eyebrow text-brown">
+              <LocalizedText>{'Обзор'}</LocalizedText>
+            </p>
+            <h2 className="display text-4xl mt-3">
+              <LocalizedText>{'По категориям'}</LocalizedText>
+            </h2>
           </div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -185,18 +226,23 @@ export default function Home() {
             <BrandWordmark light className="px-8" />
           </div>
           <div>
-            <p className="eyebrow text-gold">Наша история</p>
+            <p className="eyebrow text-gold">
+              <LocalizedText>{'Наша история'}</LocalizedText>
+            </p>
             <h2 className="display text-5xl mt-5">
-              Древние символы.
+              <LocalizedText>{'Древние символы.'}</LocalizedText>
               <br />
-              Новая энергия.
+              <LocalizedText>{'Новая энергия.'}</LocalizedText>
             </h2>
             <p className="text-white/65 leading-7 mt-7 max-w-lg">
-              SPHINX соединяет современную streetwear-культуру с символами и наследием древнего
-              Египта. Каждая вещь — это история, переосмысленная для настоящего.
+              <LocalizedText>
+                {
+                  'SPHINX соединяет современную streetwear-культуру с символами и наследием древнего Египта. Каждая вещь — это история, переосмысленная для настоящего.'
+                }
+              </LocalizedText>
             </p>
             <Link href="/about" className="btn btn-light mt-9">
-              О бренде
+              <LocalizedText>{'О бренде'}</LocalizedText>
             </Link>
           </div>
         </div>
@@ -240,11 +286,17 @@ export default function Home() {
         </div>
       </section>
       <section className="container-x py-24 text-center">
-        <p className="eyebrow text-brown">Прямая связь</p>
-        <h2 className="display text-4xl mt-4">Есть вопросы?</h2>
-        <p className="text-muted mt-4">Напишите нам — поможем с размером и оформлением заказа.</p>
+        <p className="eyebrow text-brown">
+          <LocalizedText>{'Прямая связь'}</LocalizedText>
+        </p>
+        <h2 className="display text-4xl mt-4">
+          <LocalizedText>{'Есть вопросы?'}</LocalizedText>
+        </h2>
+        <p className="text-muted mt-4">
+          <LocalizedText>{'Напишите нам — поможем с размером и оформлением заказа.'}</LocalizedText>
+        </p>
         <a className="btn btn-dark mt-7" href={`https://t.me/${TELEGRAM_USERNAME}`}>
-          Открыть Telegram
+          <LocalizedText>{'Открыть Telegram'}</LocalizedText>
         </a>
       </section>
     </main>
@@ -272,14 +324,22 @@ function CategoryCard({
       )}
       {available ? (
         <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black/60 text-white">
-          <h3 className="display text-2xl">{category.name}</h3>
+          <h3 className="display text-2xl">
+            <LocalizedText>{category.name}</LocalizedText>
+          </h3>
         </div>
       ) : (
         <div className="absolute inset-0 grid place-items-center bg-black/25 text-center text-white p-5">
           <div>
-            <h3 className="display text-3xl">{category.name}</h3>
-            <p className="display text-2xl mt-3">Скоро в продаже</p>
-            <p className="text-xs text-white/70 mt-2">Сейчас недоступно</p>
+            <h3 className="display text-3xl">
+              <LocalizedText>{category.name}</LocalizedText>
+            </h3>
+            <p className="display text-2xl mt-3">
+              <LocalizedText>{'Скоро в продаже'}</LocalizedText>
+            </p>
+            <p className="text-xs text-white/70 mt-2">
+              <LocalizedText>{'Сейчас недоступно'}</LocalizedText>
+            </p>
           </div>
         </div>
       )}

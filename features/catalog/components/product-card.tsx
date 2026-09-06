@@ -12,6 +12,7 @@ export function ProductCard({ product }: { product: Product }) {
   const { language } = useLanguage();
   const [previewColor, setPreviewColor] = useState(product.colors[0] ?? '');
   const [imageIndex, setImageIndex] = useState(0);
+  const [choosingSize, setChoosingSize] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const blockNextClick = useRef(false);
   const availableVariant = product.colors
@@ -30,10 +31,7 @@ export function ProductCard({ product }: { product: Product }) {
   const totalStock = product.variantStock
     ? Object.values(product.variantStock).reduce((total, stock) => total + stock, 0)
     : product.stockQuantity;
-  const galleryColor = product.colors.find(
-    (color) => (product.colorImages?.[color]?.length ?? 0) > 0,
-  );
-  const quickAddColor = availableVariant?.color ?? galleryColor ?? product.colors[0];
+  const quickAddColor = previewColor;
   const quickAddSize = availableVariant?.size ?? product.sizes[0];
   const lowStock = totalStock !== undefined && totalStock > 0 && totalStock <= 10;
   const discountPercent =
@@ -45,7 +43,8 @@ export function ProductCard({ product }: { product: Product }) {
     : product.images;
   const safeImageIndex = imageIndex < previewImages.length ? imageIndex : 0;
   const primaryImage = previewImages[safeImageIndex] ?? product.images[0];
-  const secondaryImage = previewImages[(safeImageIndex + 1) % previewImages.length] ?? product.images[1];
+  const secondaryImage =
+    previewImages[(safeImageIndex + 1) % previewImages.length] ?? product.images[1];
   const changeImageBySwipe = (clientX: number, clientY: number) => {
     if (!touchStart.current || previewImages.length < 2) return;
     const distanceX = clientX - touchStart.current.x;
@@ -160,11 +159,38 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
         <button
           disabled={totalStock === 0 || !quickAddSize}
-          onClick={() => add(product, quickAddColor, quickAddSize)}
+          onClick={() => setChoosingSize((current) => !current)}
           className="mt-3 w-full min-h-10 px-2 border border-black text-[9px] sm:text-[10px] uppercase tracking-[.08em] whitespace-nowrap hover:bg-ink hover:text-white disabled:opacity-35 disabled:cursor-not-allowed"
         >
           {language === 'en' ? 'Quick add' : 'Быстро добавить'}
         </button>
+        {choosingSize && (
+          <div
+            className="flex flex-wrap gap-2 mt-2"
+            aria-label={language === 'en' ? 'Choose size' : 'Выберите размер'}
+          >
+            {product.sizes.map((size) => {
+              const stock =
+                product.variantStock?.[`${previewColor}::${size}`] ??
+                product.sizeStock?.[size] ??
+                product.stockQuantity ??
+                0;
+              return (
+                <button
+                  key={size}
+                  disabled={stock <= 0}
+                  className="min-w-11 min-h-11 border border-black/20 text-xs disabled:opacity-30"
+                  onClick={() => {
+                    add(product, quickAddColor, size);
+                    setChoosingSize(false);
+                  }}
+                >
+                  {size}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </article>
   );

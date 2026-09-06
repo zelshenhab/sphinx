@@ -1,11 +1,19 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import { clientStorage, storageKeys } from '@/core/storage/client-storage';
 export type Language = 'ru' | 'en';
-type LanguageContextValue = { language: Language; setLanguage: (language: Language) => void };
+type LanguageContextValue = {
+  language: Language;
+  setLanguage: (language: Language) => void;
+  t: (text: string) => string;
+};
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 const translations: Record<string, string> = {
+  Навигация: 'Navigation',
+  Информация: 'Information',
+  'Мы на связи': 'Get in touch',
+  'Современная форма, древние символы и одежда, созданная для настоящего.':
+    'Modern silhouettes, ancient symbols and clothing made for today.',
   'БЕСПЛАТНАЯ ДОСТАВКА ОТ 7 000 ₽': 'FREE SHIPPING FROM 7,000 ₽',
   Главная: 'Home',
   Магазин: 'Shop',
@@ -163,10 +171,6 @@ const placeholders: Record<string, string> = {
   'Цена от': 'Min price',
   'Цена до': 'Max price',
 };
-const reverse = Object.fromEntries(Object.entries(translations).map(([ru, en]) => [en, ru]));
-const reversePlaceholders = Object.fromEntries(
-  Object.entries(placeholders).map(([ru, en]) => [en, ru]),
-);
 function replaceText(value: string, map: Record<string, string>, language: Language) {
   const trimmed = value.trim();
   const replacement = map[trimmed];
@@ -193,53 +197,37 @@ function replaceText(value: string, map: Record<string, string>, language: Langu
   }
   return value;
 }
-function translatePage(language: Language) {
-  document.documentElement.lang = language;
-  const map = language === 'en' ? translations : reverse;
-  const pmap = language === 'en' ? placeholders : reversePlaceholders;
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  let node;
-  while ((node = walker.nextNode())) {
-    const parent = node.parentElement;
-    if (parent && !['SCRIPT', 'STYLE'].includes(parent.tagName) && node.nodeValue) {
-      const next = replaceText(node.nodeValue, map, language);
-      if (next !== node.nodeValue) node.nodeValue = next;
-    }
-  }
-  document
-    .querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[placeholder]')
-    .forEach((el) => {
-      const value = el.placeholder;
-      if (pmap[value] && pmap[value] !== value) el.placeholder = pmap[value];
-    });
+const englishText = { ...translations, ...placeholders };
+export function LocalizedText({ children }: { children: string }) {
+  const { t } = useLanguage();
+  return t(children);
 }
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('ru');
-  const pathname = usePathname();
   useEffect(() => {
     const id = window.setTimeout(() => {
       const saved = clientStorage.get<Language>(storageKeys.language, 'ru');
       if (saved === 'en') {
         setLanguageState('en');
-        requestAnimationFrame(() => translatePage('en'));
       }
     }, 0);
     return () => window.clearTimeout(id);
   }, []);
   useEffect(() => {
-    requestAnimationFrame(() => translatePage(language));
-    const observer = new MutationObserver(() =>
-      requestAnimationFrame(() => translatePage(language)),
-    );
-    observer.observe(document.body, { childList: true, characterData: true, subtree: true });
-    return () => observer.disconnect();
-  }, [language, pathname]);
+    document.documentElement.lang = language;
+  }, [language]);
   const setLanguage = (next: Language) => {
     setLanguageState(next);
     clientStorage.set(storageKeys.language, next);
   };
   return (
-    <LanguageContext.Provider value={{ language, setLanguage }}>
+    <LanguageContext.Provider
+      value={{
+        language,
+        setLanguage,
+        t: (text) => (language === 'en' ? replaceText(text, englishText, language) : text),
+      }}
+    >
       {children}
     </LanguageContext.Provider>
   );

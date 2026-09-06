@@ -1,4 +1,6 @@
 'use client';
+import { LocalizedText } from '@/features/i18n';
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -53,6 +55,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const { notify } = useNotification();
+  const { products, loading } = useCatalog();
+  useEffect(() => {
+    if (loading || !hydrated) return;
+    const timer = window.setTimeout(
+      () =>
+        setItems((current) =>
+          current.flatMap((item) => {
+            const latest = products.find((product) => product.id === item.product.id);
+            if (!latest || !latest.colors.includes(item.color) || !latest.sizes.includes(item.size))
+              return [];
+            const available = stockForVariant(latest, item.color, item.size);
+            return available > 0
+              ? [{ ...item, product: latest, quantity: Math.min(item.quantity, available) }]
+              : [];
+          }),
+        ),
+      0,
+    );
+    return () => window.clearTimeout(timer);
+  }, [products, loading, hydrated]);
   useEffect(() => {
     const id = window.setTimeout(() => {
       setItems(clientStorage.get(storageKeys.cart, []));
@@ -169,7 +191,7 @@ export function Header() {
   return (
     <>
       <div className="bg-ink text-white text-center py-1.5 sm:py-2 text-[9px] sm:text-[10px] tracking-[.14em] sm:tracking-[.2em]">
-        {settings.announcement || 'БЕСПЛАТНАЯ ДОСТАВКА ОТ 7 000 ₽'}
+        <LocalizedText>{settings.announcement || 'БЕСПЛАТНАЯ ДОСТАВКА ОТ 7 000 ₽'}</LocalizedText>
       </div>
       <header
         className={`sticky top-0 z-40 border-b border-black/10 transition ${scrolled ? 'bg-ivory shadow-lg backdrop-blur-xl' : 'bg-ivory/95 backdrop-blur'}`}
@@ -182,10 +204,7 @@ export function Header() {
           >
             <Menu />
           </button>
-          <Link
-            href="/"
-            className="mr-auto lg:mr-0 text-left lg:text-center leading-none min-w-0"
-          >
+          <Link href="/" className="mr-auto lg:mr-0 text-left lg:text-center leading-none min-w-0">
             <b className="display text-[18px] sm:text-2xl tracking-[.16em] sm:tracking-[.22em]">
               {settings.brand || 'SPHINX'}
             </b>
@@ -194,14 +213,14 @@ export function Header() {
             </small>
             {pageLabel && (
               <small className="block sm:hidden text-[7px] tracking-[.18em] mt-1 uppercase text-muted">
-                {pageLabel}
+                <LocalizedText>{pageLabel}</LocalizedText>
               </small>
             )}
           </Link>
           <nav className="hidden lg:flex flex-1 justify-center gap-6 text-[11px] uppercase tracking-wider">
             {visibleNav.map(([n, h]) => (
               <Link key={h} href={h} className="hover:text-brown">
-                {n}
+                <LocalizedText>{n}</LocalizedText>
               </Link>
             ))}
           </nav>
@@ -259,7 +278,7 @@ export function Header() {
                 href={h}
                 className={`py-4 display text-2xl ${pathname === h ? 'text-brown' : ''}`}
               >
-                {n}
+                <LocalizedText>{n}</LocalizedText>
               </Link>
             ))}
           </nav>
@@ -270,7 +289,7 @@ export function Header() {
             </div>
             <div className="flex justify-between text-xs">
               <Link href="/contact" onClick={() => setMenu(false)}>
-                Контакты
+                <LocalizedText>{'Контакты'}</LocalizedText>
               </Link>
               <a href={`https://instagram.com/sphinx.store`}>Instagram</a>
             </div>
@@ -279,15 +298,41 @@ export function Header() {
       </div>
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
       {!pathname.startsWith('/admin') && (
-        <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-black/10 bg-ivory/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Mobile navigation">
-          <MobileNavItem href="/" label={language === 'en' ? 'Home' : 'Главная'} active={pathname === '/'} icon={Home} />
-          <MobileNavItem href="/shop" label={language === 'en' ? 'Shop' : 'Магазин'} active={pathname.startsWith('/shop') || pathname.startsWith('/product')} icon={LayoutGrid} />
-          <button onClick={() => setSearchOpen(true)} className="min-h-16 grid place-items-center content-center gap-1 text-[9px] uppercase tracking-wider">
+        <nav
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-black/10 bg-ivory/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] lg:hidden"
+          aria-label="Mobile navigation"
+        >
+          <MobileNavItem
+            href="/"
+            label={language === 'en' ? 'Home' : 'Главная'}
+            active={pathname === '/'}
+            icon={Home}
+          />
+          <MobileNavItem
+            href="/shop"
+            label={language === 'en' ? 'Shop' : 'Магазин'}
+            active={pathname.startsWith('/shop') || pathname.startsWith('/product')}
+            icon={LayoutGrid}
+          />
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="min-h-16 grid place-items-center content-center gap-1 text-[9px] uppercase tracking-wider"
+          >
             <Search size={19} />
             {language === 'en' ? 'Search' : 'Поиск'}
           </button>
-          <button onClick={() => setOpen(true)} className="relative min-h-16 grid place-items-center content-center gap-1 text-[9px] uppercase tracking-wider">
-            <span className="relative"><ShoppingBag size={19} />{count > 0 && <i className="absolute -top-2 -right-3 bg-gold text-white rounded-full not-italic text-[8px] w-4 h-4 grid place-items-center">{count}</i>}</span>
+          <button
+            onClick={() => setOpen(true)}
+            className="relative min-h-16 grid place-items-center content-center gap-1 text-[9px] uppercase tracking-wider"
+          >
+            <span className="relative">
+              <ShoppingBag size={19} />
+              {count > 0 && (
+                <i className="absolute -top-2 -right-3 bg-gold text-white rounded-full not-italic text-[8px] w-4 h-4 grid place-items-center">
+                  {count}
+                </i>
+              )}
+            </span>
             {language === 'en' ? 'Cart' : 'Корзина'}
           </button>
         </nav>
@@ -295,29 +340,51 @@ export function Header() {
     </>
   );
 }
-function MobileNavItem({ href, label, active, icon: Icon }: { href: string; label: string; active: boolean; icon: typeof Home }) {
-  return <Link href={href} className={`min-h-16 grid place-items-center content-center gap-1 text-[9px] uppercase tracking-wider ${active ? 'text-brown' : ''}`}><Icon size={19} />{label}</Link>;
+function MobileNavItem({
+  href,
+  label,
+  active,
+  icon: Icon,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+  icon: typeof Home;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`min-h-16 grid place-items-center content-center gap-1 text-[9px] uppercase tracking-wider ${active ? 'text-brown' : ''}`}
+    >
+      <Icon size={19} />
+      {label}
+    </Link>
+  );
 }
 export function Footer() {
   const { settings } = useCatalog();
   const { language } = useLanguage();
   const telegram = settings.telegram || TELEGRAM_USERNAME;
-  const trustItems = language === 'en'
-    ? [
-        [Gem, 'Premium materials', 'Selected fabrics and lasting quality'],
-        [RefreshCw, 'Easy exchange', 'A simple and clear exchange process'],
-        [CreditCard, 'Secure payment', 'Your order details stay protected'],
-        [Truck, 'Fast delivery', 'Careful delivery to your address'],
-      ]
-    : [
-        [Gem, 'Премиальные материалы', 'Отборные ткани и долговечное качество'],
-        [RefreshCw, 'Лёгкий обмен', 'Простой и понятный процесс обмена'],
-        [CreditCard, 'Безопасная оплата', 'Данные вашего заказа защищены'],
-        [Truck, 'Быстрая доставка', 'Бережная доставка по вашему адресу'],
-      ];
+  const trustItems =
+    language === 'en'
+      ? [
+          [Gem, 'Premium materials', 'Selected fabrics and lasting quality'],
+          [RefreshCw, 'Easy exchange', 'A simple and clear exchange process'],
+          [CreditCard, 'Secure payment', 'Your order details stay protected'],
+          [Truck, 'Fast delivery', 'Careful delivery to your address'],
+        ]
+      : [
+          [Gem, 'Премиальные материалы', 'Отборные ткани и долговечное качество'],
+          [RefreshCw, 'Лёгкий обмен', 'Простой и понятный процесс обмена'],
+          [CreditCard, 'Безопасная оплата', 'Данные вашего заказа защищены'],
+          [Truck, 'Быстрая доставка', 'Бережная доставка по вашему адресу'],
+        ];
   return (
     <>
-      <section className="mt-16 sm:mt-24 border-y border-black/10 bg-white" aria-label="Store benefits">
+      <section
+        className="mt-16 sm:mt-24 border-y border-black/10 bg-white"
+        aria-label="Store benefits"
+      >
         <div className="container-x grid grid-cols-2 lg:grid-cols-4">
           {trustItems.map(([Icon, title, description], index) => (
             <div
@@ -326,47 +393,71 @@ export function Footer() {
             >
               <Icon size={20} strokeWidth={1.4} className="text-brown" />
               <b className="display block text-base sm:text-lg mt-4">{title as string}</b>
-              <p className="text-[10px] sm:text-xs text-muted leading-5 mt-2">{description as string}</p>
+              <p className="text-[10px] sm:text-xs text-muted leading-5 mt-2">
+                {description as string}
+              </p>
             </div>
           ))}
         </div>
       </section>
       <footer className="bg-ink text-white">
-      <div className="container-x py-12 sm:py-16 grid grid-cols-2 lg:grid-cols-4 gap-9 sm:gap-12">
-        <div>
-          <div className="display text-3xl tracking-[.2em]">{settings.brand || 'SPHINX'}</div>
-          <div className="eyebrow mt-2 text-white/50">{settings.tagline || 'The Guardian'}</div>
-          <p className="text-xs leading-6 text-white/55 mt-5 max-w-xs col-span-2">
-            Современная одежда, вдохновлённая культурой и наследием Египта.
-          </p>
+        <div className="container-x py-12 sm:py-16 grid grid-cols-2 lg:grid-cols-4 gap-9 sm:gap-12">
+          <div>
+            <div className="display text-3xl tracking-[.2em]">{settings.brand || 'SPHINX'}</div>
+            <div className="eyebrow mt-2 text-white/50">{settings.tagline || 'The Guardian'}</div>
+            <p className="text-xs leading-6 text-white/55 mt-5 max-w-xs col-span-2">
+              <LocalizedText>
+                {'Современная одежда, вдохновлённая культурой и наследием Египта.'}
+              </LocalizedText>
+            </p>
+          </div>
+          <div className="text-sm grid gap-3">
+            <b className="text-[10px] tracking-widest uppercase text-white/45">
+              <LocalizedText>{'Навигация'}</LocalizedText>
+            </b>
+            <Link href="/about">
+              <LocalizedText>{'О бренде'}</LocalizedText>
+            </Link>
+            <Link href="/contact">
+              <LocalizedText>{'Контакты'}</LocalizedText>
+            </Link>
+            <Link href="/shop">
+              <LocalizedText>{'Магазин'}</LocalizedText>
+            </Link>
+          </div>
+          <div className="text-sm grid gap-3">
+            <b className="text-[10px] tracking-widest uppercase text-white/45">
+              <LocalizedText>{'Информация'}</LocalizedText>
+            </b>
+            <Link href="/privacy">
+              <LocalizedText>{'Конфиденциальность'}</LocalizedText>
+            </Link>
+            <Link href="/returns">
+              <LocalizedText>{'Возврат и обмен'}</LocalizedText>
+            </Link>
+            <Link href="/terms">
+              <LocalizedText>{'Условия'}</LocalizedText>
+            </Link>
+            <Link href="/legal-contact">
+              <LocalizedText>{'Данные продавца'}</LocalizedText>
+            </Link>
+          </div>
+          <div className="text-sm grid gap-3 content-start">
+            <b className="text-[10px] tracking-widest uppercase text-white/45">
+              <LocalizedText>{'Мы на связи'}</LocalizedText>
+            </b>
+            <a href="https://instagram.com/sphinx.store" target="_blank" rel="noreferrer">
+              Instagram · @sphinx.store
+            </a>
+            <a href={`https://t.me/${telegram}`} target="_blank" rel="noreferrer">
+              Telegram · @{telegram}
+            </a>
+          </div>
         </div>
-        <div className="text-sm grid gap-3">
-          <b className="text-[10px] tracking-widest uppercase text-white/45">Навигация</b>
-          <Link href="/about">О бренде</Link>
-          <Link href="/contact">Контакты</Link>
-          <Link href="/shop">Магазин</Link>
+        <div className="container-x border-t border-white/10 py-5 flex flex-wrap justify-between gap-2 text-[10px] text-white/40">
+          <span>© 2026 SPHINX</span>
+          <span>THE GUARDIAN</span>
         </div>
-        <div className="text-sm grid gap-3">
-          <b className="text-[10px] tracking-widest uppercase text-white/45">Информация</b>
-          <Link href="/privacy">Конфиденциальность</Link>
-          <Link href="/returns">Возврат и обмен</Link>
-          <Link href="/terms">Условия</Link>
-          <Link href="/legal-contact">Данные продавца</Link>
-        </div>
-        <div className="text-sm grid gap-3 content-start">
-          <b className="text-[10px] tracking-widest uppercase text-white/45">Мы на связи</b>
-          <a href="https://instagram.com/sphinx.store" target="_blank" rel="noreferrer">
-            Instagram · @sphinx.store
-          </a>
-          <a href={`https://t.me/${telegram}`} target="_blank" rel="noreferrer">
-            Telegram · @{telegram}
-          </a>
-        </div>
-      </div>
-      <div className="container-x border-t border-white/10 py-5 flex flex-wrap justify-between gap-2 text-[10px] text-white/40">
-        <span>© 2026 SPHINX</span>
-        <span>THE GUARDIAN</span>
-      </div>
       </footer>
     </>
   );
@@ -495,7 +586,10 @@ function CartDrawer() {
         <div className="border-t pt-5">
           {stockChanged && (
             <p className="mb-4 border border-red-700/20 bg-red-50 p-3 text-xs text-red-800">
-              {tr('Остаток некоторых товаров изменился. Проверьте количество перед заказом.', 'Some stock levels changed. Review quantities before checkout.')}
+              {tr(
+                'Остаток некоторых товаров изменился. Проверьте количество перед заказом.',
+                'Some stock levels changed. Review quantities before checkout.',
+              )}
             </p>
           )}
           {items.length > 0 && (
@@ -503,9 +597,17 @@ function CartDrawer() {
               <p className="text-xs text-muted mb-2">
                 {total >= freeShippingAt
                   ? tr('Бесплатная доставка доступна', 'You unlocked free delivery')
-                  : tr(`До бесплатной доставки: ${formatPrice(freeShippingAt - total)}`, `${formatPrice(freeShippingAt - total)} away from free delivery`)}
+                  : tr(
+                      `До бесплатной доставки: ${formatPrice(freeShippingAt - total)}`,
+                      `${formatPrice(freeShippingAt - total)} away from free delivery`,
+                    )}
               </p>
-              <div className="h-1.5 bg-black/10 overflow-hidden"><div className="h-full bg-gold transition-all duration-500" style={{ width: `${shippingProgress}%` }} /></div>
+              <div className="h-1.5 bg-black/10 overflow-hidden">
+                <div
+                  className="h-full bg-gold transition-all duration-500"
+                  style={{ width: `${shippingProgress}%` }}
+                />
+              </div>
             </div>
           )}
           <div className="flex justify-between text-lg mb-5">

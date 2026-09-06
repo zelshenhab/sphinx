@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Copy, Search, Send, ShoppingBag, Truck } from 'lucide-react';
 import { formatPrice } from '@/config/site';
-import { listOrders, loadOrderTracking, saveOrderTracking, updateOrderStatus } from '@/core/supabase/store';
+import { getOrderPage, saveOrderTracking, updateOrderStatus } from '@/core/supabase/store';
+import { Pagination } from '@/features/admin/components/pagination';
 import type { Order } from '@/types';
 
 const statuses = [
@@ -24,15 +25,42 @@ export default function Orders() {
   const [cityFilter, setCityFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   const [tracking, setTracking] = useState<Record<string, string>>({});
-  const [now] = useState(() => Date.now());
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [cities, setCities] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
   useEffect(() => {
-    void Promise.all([listOrders(), loadOrderTracking()])
-      .then(([loadedOrders, loadedTracking]) => { setOrders(loadedOrders); setTracking(loadedTracking); })
-      .catch((loadError) => {
-        console.error('[SPHINX_ORDERS_LOAD_ERROR]', loadError);
-        setError('Не удалось загрузить заказы из Supabase.');
-      });
-  }, []);
+    let active = true;
+    const timer = setTimeout(() => {
+      setLoading(true);
+      setError('');
+      void getOrderPage(query, statusFilter, cityFilter, Number(dateFilter) || 0, page)
+        .then((result) => {
+          if (active) {
+            setOrders(result.orders);
+            setTracking(result.tracking);
+            setTotal(result.total);
+            setCities(result.cities);
+          }
+        })
+        .catch((loadError) => {
+          console.error('[SPHINX_ORDERS_LOAD_ERROR]', loadError);
+          if (active) setError('Не удалось загрузить заказы из Supabase.');
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query, statusFilter, cityFilter, dateFilter, page, revision]);
+  const resetPage = () => {
+    setPage(0);
+    setLoading(true);
+  };
   const changeStatus = async (order: Order, status: string) => {
     if (!order.databaseId || order.status === status) return;
     if (status === 'cancelled' && !window.confirm('Отменить заказ и вернуть товары на склад?'))
@@ -44,6 +72,7 @@ export default function Orders() {
       setOrders((current) =>
         current.map((item) => (item.id === order.id ? { ...item, status } : item)),
       );
+      setRevision((value) => value + 1);
     } catch (statusError) {
       console.error('[SPHINX_ORDER_STATUS_ERROR]', statusError);
       setError('Не удалось изменить статус. Проверьте, что новая миграция применена.');
@@ -51,19 +80,17 @@ export default function Orders() {
       setUpdating('');
     }
   };
-  const filteredOrders = orders.filter((order) => {
-    const matchesQuery = `${order.id} ${order.customer} ${order.phone} ${order.telegram ?? ''}`
-      .toLowerCase()
-      .includes(query.trim().toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    const matchesCity = cityFilter === 'all' || order.city.split(',')[0].trim() === cityFilter;
-    const created = new Date(order.createdAt ?? 0).getTime();
-    const days = dateFilter === '7' ? 7 : dateFilter === '30' ? 30 : 0;
-    const matchesDate = !days || created >= now - days * 86400000;
-    return matchesQuery && matchesStatus && matchesCity && matchesDate;
-  });
-  const cities = Array.from(new Set(orders.map((order) => order.city.split(',')[0].trim()))).filter(Boolean);
-  const customerMessage = (order: Order) => `Здравствуйте, ${order.customer}!\nВаш заказ ${order.id} в SPHINX${tracking[order.databaseId ?? ''] ? ` отправлен. Трек-номер: ${tracking[order.databaseId ?? '']}` : ' принят в работу'}.\nСумма: ${formatPrice(order.total)}.`;
+  const filteredOrders = loading ? [] : orders;
+  const persistTracking = async (id: string) => {
+    setError('');
+    try {
+      await saveOrderTracking(id, tracking[id] ?? '');
+    } catch {
+      setError('Трек-номер не сохранён. Повторите попытку.');
+    }
+  };
+  const customerMessage = (order: Order) =>
+    `Здравствуйте, ${order.customer}!\nВаш заказ ${order.id} в SPHINX${tracking[order.databaseId ?? ''] ? ` отправлен. Трек-номер: ${tracking[order.databaseId ?? '']}` : ' принят в работу'}.\nСумма: ${formatPrice(order.total)}.`;
   return (
     <div className="space-y-5">
       <div className="admin-card">
@@ -71,8 +98,7 @@ export default function Orders() {
           <div>
             <h2 className="display text-2xl">Заказы</h2>
             <p className="text-xs text-muted mt-2">
-              {orders.length} заказов · {orders.filter((order) => order.status === 'new').length}{' '}
-              новых
+              {loading ? 'Загрузка…' : `${total} заказов по выбранным фильтрам`}
             </p>
           </div>
           <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-2 w-full xl:w-auto">
@@ -82,7 +108,10 @@ export default function Orders() {
               <input
                 className="field search-field"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  resetPage();
+                }}
                 placeholder="Имя, телефон, номер"
               />
             </label>
@@ -90,7 +119,10 @@ export default function Orders() {
               aria-label="Статус заказа"
               className="field"
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                resetPage();
+              }}
             >
               <option value="all">Все статусы</option>
               {statuses.map(([value, label]) => (
@@ -99,8 +131,33 @@ export default function Orders() {
                 </option>
               ))}
             </select>
-            <select className="field" value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}><option value="all">Все города</option>{cities.map((city) => <option key={city}>{city}</option>)}</select>
-            <select className="field" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)}><option value="all">За всё время</option><option value="7">Последние 7 дней</option><option value="30">Последние 30 дней</option></select>
+            <select
+              aria-label="Город"
+              className="field"
+              value={cityFilter}
+              onChange={(event) => {
+                setCityFilter(event.target.value);
+                resetPage();
+              }}
+            >
+              <option value="all">Все города</option>
+              {cities.map((city) => (
+                <option key={city}>{city}</option>
+              ))}
+            </select>
+            <select
+              aria-label="Период"
+              className="field"
+              value={dateFilter}
+              onChange={(event) => {
+                setDateFilter(event.target.value);
+                resetPage();
+              }}
+            >
+              <option value="all">За всё время</option>
+              <option value="7">Последние 7 дней</option>
+              <option value="30">Последние 30 дней</option>
+            </select>
           </div>
         </div>
         {error && <p className="text-sm text-red-700 mt-4">{error}</p>}
@@ -176,20 +233,56 @@ export default function Orders() {
             <b>{formatPrice(order.total)}</b>
           </div>
           <div className="border-t mt-5 pt-5 grid md:grid-cols-[1fr_auto] gap-3">
-            <label className="relative"><Truck size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input className="field search-field" placeholder="Номер отправления" value={tracking[order.databaseId ?? ''] ?? ''} onChange={(event) => setTracking((current) => ({...current, [order.databaseId ?? '']: event.target.value}))} onBlur={() => order.databaseId && void saveOrderTracking(order.databaseId, tracking[order.databaseId] ?? '')} /></label>
+            <label className="relative">
+              <Truck size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <input
+                className="field search-field"
+                placeholder="Номер отправления"
+                value={tracking[order.databaseId ?? ''] ?? ''}
+                onChange={(event) =>
+                  setTracking((current) => ({
+                    ...current,
+                    [order.databaseId ?? '']: event.target.value,
+                  }))
+                }
+                onBlur={() => order.databaseId && void persistTracking(order.databaseId)}
+              />
+            </label>
             <div className="flex gap-2">
-              <button onClick={() => void navigator.clipboard.writeText(customerMessage(order))} className="btn border border-ink"><Copy size={15} /> Копировать</button>
-              {order.telegram && <a target="_blank" href={`https://t.me/${order.telegram.replace('@','')}?text=${encodeURIComponent(customerMessage(order))}`} className="btn btn-dark"><Send size={15} /> Telegram</a>}
+              <button
+                onClick={() => void navigator.clipboard.writeText(customerMessage(order))}
+                className="btn border border-ink"
+              >
+                <Copy size={15} /> Копировать
+              </button>
+              {order.telegram && (
+                <a
+                  target="_blank"
+                  href={`https://t.me/${order.telegram.replace('@', '')}?text=${encodeURIComponent(customerMessage(order))}`}
+                  className="btn btn-dark"
+                >
+                  <Send size={15} /> Telegram
+                </a>
+              )}
             </div>
           </div>
         </article>
       ))}
-      {!filteredOrders.length && !error && (
+      {!filteredOrders.length && !error && !loading && (
         <div className="admin-card text-muted text-center py-12">
           <ShoppingBag className="mx-auto mb-3" size={24} />
           {orders.length ? 'Заказы по выбранным фильтрам не найдены.' : 'Заказов пока нет.'}
         </div>
       )}
+      <Pagination
+        page={page}
+        total={total}
+        disabled={loading}
+        onChange={(next) => {
+          setPage(next);
+          setLoading(true);
+        }}
+      />
     </div>
   );
 }

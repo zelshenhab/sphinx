@@ -8,7 +8,7 @@ import { useLanguage } from '@/features/i18n';
 import { formatPrice, getColorSwatch } from '@/config/site';
 export default function Shop() {
   const { banners, categories, products, loading, settings } = useCatalog();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [now] = useState(() => Date.now());
   const [cat, setCat] = useState('all');
   const [sort, setSort] = useState('new');
@@ -20,6 +20,53 @@ export default function Shop() {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileColumns, setMobileColumns] = useState<1 | 2>(2);
+  const [urlReady, setUrlReady] = useState(false);
+  useEffect(() => {
+    const restore = () => {
+      const params = new URLSearchParams(window.location.search);
+      setCat(params.get('category') || 'all');
+      setSort(params.get('sort') || 'new');
+      setQuery(params.get('q') || '');
+      setSize(params.get('size') || 'all');
+      setColor(params.get('color') || 'all');
+      setMinPrice(params.get('min') || '');
+      setMaxPrice(params.get('max') || '');
+      setInStockOnly(params.get('stock') === '1');
+      setUrlReady(true);
+    };
+    const timer = window.setTimeout(restore, 0);
+    window.addEventListener('popstate', restore);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('popstate', restore);
+    };
+  }, []);
+  useEffect(() => {
+    if (!urlReady) return;
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      for (const [key, value, defaultValue] of [
+        ['category', cat, 'all'],
+        ['sort', sort, 'new'],
+        ['q', query, ''],
+        ['size', size, 'all'],
+        ['color', color, 'all'],
+        ['min', minPrice, ''],
+        ['max', maxPrice, ''],
+        ['stock', inStockOnly ? '1' : '', ''],
+      ]) {
+        if (value === defaultValue) params.delete(key);
+        else params.set(key, value);
+      }
+      const search = params.toString();
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${window.location.pathname}${search ? `?${search}` : ''}`,
+      );
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [cat, sort, query, size, color, minPrice, maxPrice, inStockOnly, urlReady]);
   const availableCategories = categories.filter((category) => category.active);
   const sizes = Array.from(
     new Set([
@@ -128,14 +175,17 @@ export default function Shop() {
   return (
     <main className="container-x py-16">
       {banner && (
-        <section className={`relative min-h-72 mb-14 overflow-hidden bg-ink flex items-end ${banner.textColor === 'dark' ? 'text-ink' : 'text-white'}`} style={{minHeight: banner.height ? `${Math.min(banner.height,520)}px` : undefined}}>
+        <section
+          className={`relative min-h-72 mb-14 overflow-hidden bg-ink flex items-end ${banner.textColor === 'dark' ? 'text-ink' : 'text-white'}`}
+          style={{ minHeight: banner.height ? `${Math.min(banner.height, 520)}px` : undefined }}
+        >
           {banner.image && (
             <Image
               src={banner.image}
               alt={banner.title}
               fill
               priority
-              style={{objectPosition:banner.imagePosition ?? 'center'}}
+              style={{ objectPosition: banner.imagePosition ?? 'center' }}
               className={`object-cover ${banner.mobileImage ? 'hidden md:block' : ''}`}
             />
           )}
@@ -148,18 +198,45 @@ export default function Shop() {
               className="object-cover md:hidden"
             />
           )}
-          {hasBannerContent && !banner.imageContainsText && <div className="absolute inset-0 bg-gradient-to-r from-black to-transparent" style={{opacity:(banner.gradientOpacity ?? 65)/100}} />}
+          {hasBannerContent && !banner.imageContainsText && (
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-black to-transparent"
+              style={{ opacity: (banner.gradientOpacity ?? 65) / 100 }}
+            />
+          )}
           {hasBannerContent && (
-            <div className={`relative p-7 sm:p-10 w-full ${banner.textAlign === 'center' ? 'text-center' : banner.textAlign === 'right' ? 'text-right' : ''}`}>
+            <div
+              className={`relative p-7 sm:p-10 w-full ${banner.textAlign === 'center' ? 'text-center' : banner.textAlign === 'right' ? 'text-right' : ''}`}
+            >
               {bannerSubtitle && <p className="eyebrow">{bannerSubtitle}</p>}
               {bannerTitle && <h2 className="display text-4xl sm:text-5xl mt-3">{bannerTitle}</h2>}
-              {(bannerCta || banner.secondCtaText) && <div className={`flex gap-3 mt-6 ${banner.textAlign === 'center' ? 'justify-center' : banner.textAlign === 'right' ? 'justify-end' : ''}`}>{bannerCta && <Link href={banner.ctaUrl || '/shop'} className="btn btn-light">{bannerCta}</Link>}{banner.secondCtaText && <Link href={banner.secondCtaUrl || '/shop'} className="btn border border-current">{language === 'en' && banner.secondCtaTextEn ? banner.secondCtaTextEn : banner.secondCtaText}</Link>}</div>}
+              {(bannerCta || banner.secondCtaText) && (
+                <div
+                  className={`flex gap-3 mt-6 ${banner.textAlign === 'center' ? 'justify-center' : banner.textAlign === 'right' ? 'justify-end' : ''}`}
+                >
+                  {bannerCta && (
+                    <Link href={banner.ctaUrl || '/shop'} className="btn btn-light">
+                      {bannerCta}
+                    </Link>
+                  )}
+                  {banner.secondCtaText && (
+                    <Link
+                      href={banner.secondCtaUrl || '/shop'}
+                      className="btn border border-current"
+                    >
+                      {language === 'en' && banner.secondCtaTextEn
+                        ? banner.secondCtaTextEn
+                        : banner.secondCtaText}
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </section>
       )}
       <p className="eyebrow text-brown">SPHINX Store</p>
-      <h1 className="display text-5xl mt-3">Магазин</h1>
+      <h1 className="display text-5xl mt-3">{language === 'en' ? 'Shop' : 'Магазин'}</h1>
       <section className="my-10 border-y py-5 border-black/10">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={18} />
@@ -195,7 +272,7 @@ export default function Shop() {
             <option value="all">{language === 'en' ? 'All categories' : 'Все категории'}</option>
             {availableCategories.map((category) => (
               <option key={category.id} value={category.slug}>
-                {category.name}
+                {t(category.name)}
               </option>
             ))}
           </select>
@@ -211,7 +288,9 @@ export default function Shop() {
           <div className="border border-black/10 bg-white p-4">
             <div className="flex justify-between text-xs mb-3">
               <b>{language === 'en' ? 'Maximum price' : 'Максимальная цена'}</b>
-              <span>{maxPrice ? formatPrice(Number(maxPrice)) : language === 'en' ? 'Any' : 'Любая'}</span>
+              <span>
+                {maxPrice ? formatPrice(Number(maxPrice)) : language === 'en' ? 'Any' : 'Любая'}
+              </span>
             </div>
             <input
               className="w-full accent-black"
@@ -220,7 +299,9 @@ export default function Shop() {
               max={highestPrice}
               step="100"
               value={maxPrice || highestPrice}
-              onChange={(event) => setMaxPrice(event.target.value === String(highestPrice) ? '' : event.target.value)}
+              onChange={(event) =>
+                setMaxPrice(event.target.value === String(highestPrice) ? '' : event.target.value)
+              }
             />
           </div>
           <label className="field flex items-center gap-2 cursor-pointer text-sm md:col-start-1">
@@ -237,7 +318,7 @@ export default function Shop() {
             {query && <FilterChip label={`“${query}”`} clear={() => setQuery('')} />}
             {cat !== 'all' && (
               <FilterChip
-                label={availableCategories.find((item) => item.slug === cat)?.name ?? cat}
+                label={t(availableCategories.find((item) => item.slug === cat)?.name ?? cat)}
                 clear={() => setCat('all')}
               />
             )}
@@ -332,7 +413,7 @@ export default function Shop() {
               <option value="all">{language === 'en' ? 'All categories' : 'Все категории'}</option>
               {availableCategories.map((category) => (
                 <option key={category.id} value={category.slug}>
-                  {category.name}
+                  {t(category.name)}
                 </option>
               ))}
             </select>
@@ -433,19 +514,44 @@ function VisualFilters({
       <div>
         <b className="text-xs">{language === 'en' ? 'Size' : 'Размер'}</b>
         <div className="flex flex-wrap gap-2 mt-3">
-          <button onClick={() => setSize('all')} className={`min-w-10 h-9 px-2 text-[10px] border ${size === 'all' ? 'bg-ink text-white border-ink' : 'border-black/15'}`}>ALL</button>
+          <button
+            onClick={() => setSize('all')}
+            className={`min-w-10 h-9 px-2 text-[10px] border ${size === 'all' ? 'bg-ink text-white border-ink' : 'border-black/15'}`}
+          >
+            ALL
+          </button>
           {sizes.map((item) => (
-            <button key={item} onClick={() => setSize(item)} className={`min-w-10 h-9 px-2 text-[10px] border ${size === item ? 'bg-ink text-white border-ink' : 'border-black/15'}`}>{item}</button>
+            <button
+              key={item}
+              onClick={() => setSize(item)}
+              className={`min-w-10 h-9 px-2 text-[10px] border ${size === item ? 'bg-ink text-white border-ink' : 'border-black/15'}`}
+            >
+              {item}
+            </button>
           ))}
         </div>
       </div>
       <div>
         <b className="text-xs">{language === 'en' ? 'Color' : 'Цвет'}</b>
         <div className="flex flex-wrap gap-3 mt-3">
-          <button onClick={() => setColor('all')} className={`h-9 px-3 text-[10px] border ${color === 'all' ? 'bg-ink text-white border-ink' : 'border-black/15'}`}>ALL</button>
+          <button
+            onClick={() => setColor('all')}
+            className={`h-9 px-3 text-[10px] border ${color === 'all' ? 'bg-ink text-white border-ink' : 'border-black/15'}`}
+          >
+            ALL
+          </button>
           {colors.map((item) => (
-            <button key={item} title={item} aria-label={item} onClick={() => setColor(item)} className={`w-9 h-9 rounded-full border-2 p-1 ${color === item ? 'border-ink scale-110' : 'border-transparent'}`}>
-              <span className="block w-full h-full rounded-full border border-black/20 shadow-sm" style={{ backgroundColor: getColorSwatch(item) }} />
+            <button
+              key={item}
+              title={item}
+              aria-label={item}
+              onClick={() => setColor(item)}
+              className={`w-9 h-9 rounded-full border-2 p-1 ${color === item ? 'border-ink scale-110' : 'border-transparent'}`}
+            >
+              <span
+                className="block w-full h-full rounded-full border border-black/20 shadow-sm"
+                style={{ backgroundColor: getColorSwatch(item) }}
+              />
             </button>
           ))}
         </div>

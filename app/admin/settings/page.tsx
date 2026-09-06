@@ -49,17 +49,34 @@ export default function Settings() {
   return (
     <div className="admin-card max-w-4xl">
       <h2 className="display text-2xl mb-6">Настройки</h2>
-      <p className="text-xs text-muted mb-6">Бренд, контакты, доставка, языки и режим работы магазина.</p>
+      <p className="text-xs text-muted mb-6">
+        Бренд, контакты, доставка, языки и режим работы магазина.
+      </p>
       <div className="grid sm:grid-cols-2 gap-4">
         {Object.entries(s).map(([k, v]) => (
           <label className={k === 'announcement' ? 'sm:col-span-2' : ''} key={k}>
             <span className="text-xs text-muted uppercase">{k}</span>
-            {(k === 'maintenance_mode' || k === 'orders_enabled') ? (
-              <select className="field mt-2" value={v} onChange={(e) => setS({...s,[k]:e.target.value})}><option value="false">Выключено</option><option value="true">Включено</option></select>
-            ) : (k === 'exchange_policy' || k === 'seller_details') ? (
-              <textarea className="field mt-2 min-h-24" value={v} onChange={(e) => setS({...s,[k]:e.target.value})} />
+            {k === 'maintenance_mode' || k === 'orders_enabled' ? (
+              <select
+                className="field mt-2"
+                value={v}
+                onChange={(e) => setS({ ...s, [k]: e.target.value })}
+              >
+                <option value="false">Выключено</option>
+                <option value="true">Включено</option>
+              </select>
+            ) : k === 'exchange_policy' || k === 'seller_details' ? (
+              <textarea
+                className="field mt-2 min-h-24"
+                value={v}
+                onChange={(e) => setS({ ...s, [k]: e.target.value })}
+              />
             ) : (
-              <input className="field mt-2" value={v} onChange={(e) => setS({ ...s, [k]: e.target.value })} />
+              <input
+                className="field mt-2"
+                value={v}
+                onChange={(e) => setS({ ...s, [k]: e.target.value })}
+              />
             )}
           </label>
         ))}
@@ -67,9 +84,9 @@ export default function Settings() {
       <button
         className="btn btn-dark mt-6"
         onClick={async () => {
-          clientStorage.set(storageKeys.settings, s);
           try {
             await saveSettings(s);
+            clientStorage.set(storageKeys.settings, s);
             await refresh();
             setSaved(true);
             notify('settings_saved', 'success');

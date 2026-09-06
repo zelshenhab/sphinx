@@ -1,6 +1,21 @@
 import { createClient } from '@/core/supabase/client';
 import type { Banner, Category, Collection, Product } from '@/types';
 
+// Only deduplicate in-flight reads; writes and future refreshes always fetch again.
+let settingsRequest: Promise<{ key: string; value: unknown }[]> | null = null;
+function readSettings() {
+  if (!settingsRequest)
+    settingsRequest = Promise.resolve(createClient().from('store_settings').select('key,value'))
+      .then(({ data, error }) => {
+        if (error) throw error;
+        return data ?? [];
+      })
+      .finally(() => {
+        settingsRequest = null;
+      });
+  return settingsRequest;
+}
+
 interface ProductRow {
   id: string;
   name: string;
@@ -20,6 +35,7 @@ interface ProductRow {
   fit: string;
   product_type: 'Streetwear' | 'Performance';
   in_stock: boolean;
+  size_guide?: string[][];
 }
 
 export function rowToProduct(row: ProductRow): Product {
@@ -41,6 +57,7 @@ export function rowToProduct(row: ProductRow): Product {
     gsm: row.gsm ?? undefined,
     fit: row.fit,
     type: row.product_type,
+    sizeGuide: row.size_guide ?? [],
   };
 }
 export function productToRow(product: Product) {
@@ -62,17 +79,17 @@ export function productToRow(product: Product) {
     fit: product.fit,
     product_type: product.type,
     in_stock: true,
+    size_guide: product.sizeGuide ?? [],
   };
 }
 
 export async function listProducts() {
   const supabase = createClient();
-  const [{ data, error }, { data: mediaRows, error: mediaError }] = await Promise.all([
+  const [{ data, error }, mediaRows] = await Promise.all([
     supabase.from('products').select('*').order('created_at', { ascending: false }),
-    supabase.from('store_settings').select('key,value'),
+    readSettings(),
   ]);
   if (error) throw error;
-  if (mediaError) throw mediaError;
   const media = new Map(
     (mediaRows ?? [])
       .filter((row) => row.key.startsWith('product_color_images:'))
@@ -102,27 +119,32 @@ export async function listProducts() {
         row.value as Record<string, number>,
       ]),
   );
-  const productOrder = ((mediaRows ?? []).find((row) => row.key === 'product_order')?.value ?? []) as string[];
-  return (data as ProductRow[]).map((row) => {
-    const variants = variantStock.get(row.id);
-    return {
-      ...rowToProduct(row),
-      colorImages: media.get(row.id) ?? {},
-      sizeStock: sizeStock.get(row.id) ?? undefined,
-      variantStock: variants,
-      stockQuantity: variants
-        ? Object.values(variants).reduce((total, quantity) => total + quantity, 0)
-        : (stock.get(row.id) ?? 20),
-    };
-  }).sort((a, b) => {
-    const first = productOrder.indexOf(a.id);
-    const second = productOrder.indexOf(b.id);
-    return (first < 0 ? 99999 : first) - (second < 0 ? 99999 : second);
-  });
+  const productOrder = ((mediaRows ?? []).find((row) => row.key === 'product_order')?.value ??
+    []) as string[];
+  return (data as ProductRow[])
+    .map((row) => {
+      const variants = variantStock.get(row.id);
+      return {
+        ...rowToProduct(row),
+        colorImages: media.get(row.id) ?? {},
+        sizeStock: sizeStock.get(row.id) ?? undefined,
+        variantStock: variants,
+        stockQuantity: variants
+          ? Object.values(variants).reduce((total, quantity) => total + quantity, 0)
+          : (stock.get(row.id) ?? 20),
+      };
+    })
+    .sort((a, b) => {
+      const first = productOrder.indexOf(a.id);
+      const second = productOrder.indexOf(b.id);
+      return (first < 0 ? 99999 : first) - (second < 0 ? 99999 : second);
+    });
 }
 
 export async function saveProductOrder(ids: string[]) {
-  const { error } = await createClient().from('store_settings').upsert({ key: 'product_order', value: ids });
+  const { error } = await createClient()
+    .from('store_settings')
+    .upsert({ key: 'product_order', value: ids });
   if (error) throw error;
 }
 export async function listCategories(): Promise<Category[]> {
@@ -135,13 +157,14 @@ export async function listCategories(): Promise<Category[]> {
 }
 export async function listCollections(): Promise<Collection[]> {
   const supabase = createClient();
-  const [{ data, error }, { data: metaRows }] = await Promise.all([
+  const [{ data, error }, allMetadata] = await Promise.all([
     supabase
       .from('collections')
       .select('id,name,slug,active,collection_products(product_id)')
       .order('created_at'),
-    supabase.from('store_settings').select('key,value').like('key', 'collection_meta:%'),
+    readSettings(),
   ]);
+  const metaRows = allMetadata.filter((row) => row.key.startsWith('collection_meta:'));
   if (error) throw error;
   const metadata = new Map(
     (metaRows ?? []).map((row) => [
@@ -162,13 +185,14 @@ export async function listCollections(): Promise<Collection[]> {
 }
 export async function listBanners(): Promise<Banner[]> {
   const supabase = createClient();
-  const [{ data, error }, { data: metaRows }] = await Promise.all([
+  const [{ data, error }, allMetadata] = await Promise.all([
     supabase
       .from('banners')
       .select('id,title,subtitle,image,cta_text,cta_url,active,sort_order')
       .order('sort_order'),
-    supabase.from('store_settings').select('key,value').like('key', 'banner_meta:%'),
+    readSettings(),
   ]);
+  const metaRows = allMetadata.filter((row) => row.key.startsWith('banner_meta:'));
   if (error) throw error;
   const metadata = new Map(
     (metaRows ?? []).map((row) => [
@@ -189,8 +213,7 @@ export async function listBanners(): Promise<Banner[]> {
   }));
 }
 export async function listStoreSettings(): Promise<Record<string, string>> {
-  const { data, error } = await createClient().from('store_settings').select('key,value');
-  if (error) throw error;
+  const data = await readSettings();
   return Object.fromEntries(
     (data ?? [])
       .filter((row) => typeof row.value === 'string')
@@ -199,61 +222,32 @@ export async function listStoreSettings(): Promise<Record<string, string>> {
 }
 export async function createProduct(product: Product) {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('products')
-    .insert(productToRow(product))
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc('create_product_safely', {
+    fields: productToRow(product),
+    color_images: product.colorImages ?? {},
+    variant_stock: product.variantStock ?? {},
+  });
   if (error) throw error;
-  const created = {
-    ...rowToProduct(data as ProductRow),
-    colorImages: product.colorImages ?? {},
-    sizeStock: product.sizeStock ?? {},
-    variantStock: product.variantStock ?? {},
-    stockQuantity: product.stockQuantity ?? 20,
-  };
-  await saveProductMetadata(supabase, created);
+  const latest = await listProducts();
+  const created = latest.find((item) => item.id === data);
+  if (!created) throw new Error('Created product could not be reloaded');
   return created;
 }
-export async function updateProduct(product: Product) {
+export async function updateProduct(product: Product, expectedStock?: Record<string, number>) {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('products')
-    .update(productToRow(product))
-    .eq('id', product.id)
-    .select()
-    .single();
+  const { error } = await supabase.rpc('save_product_safely', {
+    product_id: product.id,
+    fields: productToRow(product),
+    color_images: product.colorImages ?? {},
+    expected_stock: expectedStock ?? null,
+    next_stock: expectedStock === undefined ? null : (product.variantStock ?? {}),
+  });
   if (error) throw error;
-  await saveProductMetadata(supabase, product);
-  return {
-    ...rowToProduct(data as ProductRow),
-    colorImages: product.colorImages ?? {},
-    sizeStock: product.sizeStock ?? {},
-    variantStock: product.variantStock ?? {},
-    stockQuantity: product.stockQuantity ?? 20,
-  };
+  const latest = await listProducts();
+  return latest.find((item) => item.id === product.id) ?? product;
 }
 export async function deleteProduct(id: string) {
-  const supabase = createClient();
-  const { error } = await supabase.from('products').delete().eq('id', id);
-  if (error) throw error;
-  await supabase
-    .from('store_settings')
-    .delete()
-    .in('key', [
-      `product_color_images:${id}`,
-      `product_stock:${id}`,
-      `product_size_stock:${id}`,
-      `product_variant_stock:${id}`,
-    ]);
-}
-async function saveProductMetadata(supabase: ReturnType<typeof createClient>, product: Product) {
-  const { error } = await supabase.from('store_settings').upsert([
-    { key: `product_color_images:${product.id}`, value: product.colorImages ?? {} },
-    { key: `product_stock:${product.id}`, value: product.stockQuantity ?? 20 },
-    { key: `product_size_stock:${product.id}`, value: product.sizeStock ?? {} },
-    { key: `product_variant_stock:${product.id}`, value: product.variantStock ?? {} },
-  ]);
+  const { error } = await createClient().rpc('delete_product_safely', { product_id: id });
   if (error) throw error;
 }
 export async function uploadProductImage(file: File) {

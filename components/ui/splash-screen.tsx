@@ -6,6 +6,15 @@ export function SplashScreen() {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    try {
+      if (sessionStorage.getItem('sphinx_splash_seen')) {
+        const skip = window.setTimeout(() => setVisible(false), 0);
+        return () => window.clearTimeout(skip);
+      }
+      sessionStorage.setItem('sphinx_splash_seen', '1');
+    } catch {
+      // Storage can be unavailable in private browsing.
+    }
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const timer = window.setTimeout(() => {

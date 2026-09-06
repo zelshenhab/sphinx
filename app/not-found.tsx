@@ -1,7 +1,18 @@
+import { LocalizedText } from '@/features/i18n';
 import Link from 'next/link';
 
 export default function NotFound() {
-  return <main className="container-x min-h-[60vh] grid place-items-center py-20 text-center">
-    <div><p className="eyebrow text-brown">404</p><h1 className="display text-5xl mt-4">Страница не найдена</h1><Link href="/" className="btn btn-dark mt-7">На главную</Link></div>
-  </main>;
+  return (
+    <main className="container-x min-h-[60vh] grid place-items-center py-20 text-center">
+      <div>
+        <p className="eyebrow text-brown">404</p>
+        <h1 className="display text-5xl mt-4">
+          <LocalizedText>{'Страница не найдена'}</LocalizedText>
+        </h1>
+        <Link href="/" className="btn btn-dark mt-7">
+          <LocalizedText>{'На главную'}</LocalizedText>
+        </Link>
+      </div>
+    </main>
+  );
 }

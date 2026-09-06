@@ -30,6 +30,7 @@ export interface Product {
   description: string;
   variants?: ProductVariant[];
   lowStockThreshold?: number;
+  sizeGuide?: string[][];
 }
 
 export interface Category {
