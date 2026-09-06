@@ -1,14 +1,15 @@
 begin;
-alter table public.orders add column request_token uuid unique;
-alter table public.orders add column expires_at timestamptz;
-alter table public.orders add column discount_id text;
-alter table public.orders add column discount_amount integer not null default 0;
-alter table public.orders add column receipt jsonb;
-create index orders_reservation_expiry on public.orders(expires_at) where status='new';
-create index orders_phone_created on public.orders(phone,created_at);
+alter table public.orders add column if not exists request_token uuid;
+alter table public.orders add column if not exists expires_at timestamptz;
+alter table public.orders add column if not exists discount_id text;
+alter table public.orders add column if not exists discount_amount integer not null default 0;
+alter table public.orders add column if not exists receipt jsonb;
+create unique index if not exists orders_request_token_unique on public.orders(request_token) where request_token is not null;
+create index if not exists orders_reservation_expiry on public.orders(expires_at) where status='new';
+create index if not exists orders_phone_created on public.orders(phone,created_at);
 
 -- A caller may only release reservations whose deadline has already passed.
-create function public.expire_store_reservations() returns void
+create or replace function public.expire_store_reservations() returns void
 language plpgsql security definer set search_path = '' as $$
 declare reservation record; item record; current_stock jsonb; variant text;
 begin
@@ -30,7 +31,7 @@ begin
   end loop;
 end $$;
 
-create function public.create_store_order_v2(customer jsonb, items jsonb, request_token uuid, coupon text default '')
+create or replace function public.create_store_order_v2(customer jsonb, items jsonb, request_token uuid, coupon text default '')
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare existing public.orders%rowtype; new_id uuid; result jsonb; rules jsonb;
   rule jsonb; eligible integer; reduction integer; best integer := 0; chosen text;

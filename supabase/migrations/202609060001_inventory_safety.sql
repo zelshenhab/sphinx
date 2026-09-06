@@ -2,7 +2,7 @@ begin;
 alter table public.products add column if not exists size_guide jsonb not null default '[]';
 
 -- Keep a private, append-only history of inventory writes, including order reservations.
-create table public.inventory_movements (
+create table if not exists public.inventory_movements (
   id bigint generated always as identity primary key,
   inventory_key text not null,
   before_value jsonb,
@@ -12,9 +12,10 @@ create table public.inventory_movements (
 );
 alter table public.inventory_movements enable row level security;
 grant select on public.inventory_movements to authenticated;
+drop policy if exists "admins read inventory history" on public.inventory_movements;
 create policy "admins read inventory history" on public.inventory_movements
   for select to authenticated using(public.is_admin());
-create function public.audit_inventory_change() returns trigger
+create or replace function public.audit_inventory_change() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
   if coalesce(new.key, old.key) like 'product_variant_stock:%'
@@ -26,6 +27,7 @@ begin
   end if;
   return coalesce(new,old);
 end $$;
+drop trigger if exists audit_inventory on public.store_settings;
 create trigger audit_inventory after insert or update or delete on public.store_settings
 for each row execute function public.audit_inventory_change();
 
@@ -35,11 +37,12 @@ update public.orders o set tracking_number = s.value #>> '{}'
 from public.store_settings s where s.key = 'order_tracking:' || o.id::text;
 delete from public.store_settings where key like 'order_tracking:%';
 drop policy if exists "public read settings" on public.store_settings;
+drop policy if exists "public read settings" on public.store_settings;
 create policy "public read settings" on public.store_settings for select to anon,authenticated
 using (key not like 'order_tracking:%' and key <> 'discount_rules');
 
 -- Compare stock only when the administrator explicitly changes stock.
-create function public.save_product_safely(
+create or replace function public.save_product_safely(
   product_id uuid, fields jsonb, color_images jsonb,
   expected_stock jsonb default null, next_stock jsonb default null
 ) returns void language plpgsql security definer set search_path = '' as $$

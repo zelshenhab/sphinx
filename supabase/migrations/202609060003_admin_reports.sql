@@ -2,7 +2,7 @@ begin;
 create index if not exists orders_status_created_idx on public.orders(status,created_at desc);
 create index if not exists order_items_order_idx on public.order_items(order_id);
 
-create function public.resume_store_order(request_token uuid) returns jsonb
+create or replace function public.resume_store_order(request_token uuid) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare saved public.orders%rowtype;
 begin
@@ -14,7 +14,7 @@ begin
   return saved.receipt;
 end $$;
 
-create function public.create_product_safely(fields jsonb,color_images jsonb,variant_stock jsonb)
+create or replace function public.create_product_safely(fields jsonb,color_images jsonb,variant_stock jsonb)
 returns uuid language plpgsql security definer set search_path = '' as $$
 declare product_row public.products%rowtype; product_id uuid; entry record;
 begin
@@ -37,7 +37,7 @@ begin
   return product_id;
 end $$;
 
-create function public.delete_product_safely(product_id uuid) returns void
+create or replace function public.delete_product_safely(product_id uuid) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
   if not public.is_admin() then raise exception 'FORBIDDEN'; end if;
@@ -48,7 +48,7 @@ begin
 end $$;
 
 -- Never send the full customer/order history to a reporting screen.
-create function public.admin_sales_report() returns jsonb
+create or replace function public.admin_sales_report() returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare result jsonb; day_start timestamptz; month_start timestamptz;
 begin
@@ -75,7 +75,7 @@ begin
        where o.status='completed' group by i.size order by qty desc,i.size limit 5) x));
 end $$;
 
-create function public.admin_inventory_report() returns jsonb
+create or replace function public.admin_inventory_report() returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 begin
   if not public.is_admin() then raise exception 'FORBIDDEN'; end if;
@@ -89,7 +89,7 @@ begin
   ) x);
 end $$;
 
-create function public.admin_customer_page(search_text text default '',page_number integer default 0)
+create or replace function public.admin_customer_page(search_text text default '',page_number integer default 0)
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 begin
   if not public.is_admin() then raise exception 'FORBIDDEN'; end if;
@@ -111,7 +111,7 @@ begin
   )) from paged p),'[]')));
 end $$;
 
-create function public.admin_order_page(search_text text default '',status_filter text default 'all',city_filter text default 'all',days_filter integer default 0,page_number integer default 0)
+create or replace function public.admin_order_page(search_text text default '',status_filter text default 'all',city_filter text default 'all',days_filter integer default 0,page_number integer default 0)
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 begin
   if not public.is_admin() then raise exception 'FORBIDDEN'; end if;
