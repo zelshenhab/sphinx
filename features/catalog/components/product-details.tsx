@@ -8,6 +8,15 @@ import { formatPrice, getColorSwatch, TELEGRAM_USERNAME } from '@/config/site';
 import { useCart } from '@/features/cart';
 import type { Product } from '@/types';
 import { useLanguage } from '@/features/i18n';
+
+const DEFAULT_SIZE_GUIDE: Record<string, string[]> = {
+  XS: ['XS', '50', '66', '20'],
+  S: ['S', '53', '68', '21'],
+  M: ['M', '56', '71', '22'],
+  L: ['L', '59', '73', '23'],
+  XL: ['XL', '62', '75', '24'],
+  XXL: ['XXL', '65', '77', '25'],
+};
 export default function ProductDetails({ product: initialProduct }: { product: Product }) {
   const catalog = useCatalog();
   const p = catalog.products.find((product) => product.id === initialProduct.id) ?? initialProduct;
@@ -42,6 +51,9 @@ export default function ProductDetails({ product: initialProduct }: { product: P
   const { add } = useCart();
   const { categories, collections, products, settings } = useCatalog();
   const { language, t } = useLanguage();
+  const sizeGuide = p.sizeGuide?.length
+    ? p.sizeGuide
+    : p.sizes.map((item) => DEFAULT_SIZE_GUIDE[item] ?? [item, '—', '—', '—']);
   const tr = (ru: string, en: string) => (language === 'en' ? en : ru);
   const selectedVariantStock = size ? stockForVariant(color, size) : 0;
   const relatedProducts = products
@@ -360,7 +372,7 @@ export default function ProductDetails({ product: initialProduct }: { product: P
                     </tr>
                   </thead>
                   <tbody>
-                    {(p.sizeGuide ?? []).map((row) => (
+                    {sizeGuide.map((row) => (
                       <tr
                         className={`border-t ${size === row[0] ? 'bg-sand/70 font-medium' : ''}`}
                         key={row[0]}
@@ -377,14 +389,9 @@ export default function ProductDetails({ product: initialProduct }: { product: P
                     ))}
                   </tbody>
                 </table>
-                {!p.sizeGuide?.length && (
-                  <p className="text-sm py-3">
-                    {tr(
-                      'Уточните замеры этой модели в Telegram.',
-                      'Contact us on Telegram for this product’s measurements.',
-                    )}
-                  </p>
-                )}
+                <p className="text-[10px] text-muted mt-3">
+                  {tr('Замеры могут отличаться на 1–2 см.', 'Measurements may vary by 1–2 cm.')}
+                </p>
               </div>
             </details>
           </div>
