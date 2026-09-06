@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Copy, Search, Send, ShoppingBag, Truck } from 'lucide-react';
+import { Copy, Search, Send, ShoppingBag } from 'lucide-react';
 import { formatPrice } from '@/config/site';
-import { getOrderPage, saveOrderTracking, updateOrderStatus } from '@/core/supabase/store';
+import { getOrderPage, updateOrderStatus } from '@/core/supabase/store';
 import { Pagination } from '@/features/admin/components/pagination';
 import type { Order } from '@/types';
 
@@ -24,7 +24,6 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
-  const [tracking, setTracking] = useState<Record<string, string>>({});
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [cities, setCities] = useState<string[]>([]);
@@ -39,7 +38,6 @@ export default function Orders() {
         .then((result) => {
           if (active) {
             setOrders(result.orders);
-            setTracking(result.tracking);
             setTotal(result.total);
             setCities(result.cities);
           }
@@ -81,16 +79,8 @@ export default function Orders() {
     }
   };
   const filteredOrders = loading ? [] : orders;
-  const persistTracking = async (id: string) => {
-    setError('');
-    try {
-      await saveOrderTracking(id, tracking[id] ?? '');
-    } catch {
-      setError('Трек-номер не сохранён. Повторите попытку.');
-    }
-  };
   const customerMessage = (order: Order) =>
-    `Здравствуйте, ${order.customer}!\nВаш заказ ${order.id} в SPHINX${tracking[order.databaseId ?? ''] ? ` отправлен. Трек-номер: ${tracking[order.databaseId ?? '']}` : ' принят в работу'}.\nСумма: ${formatPrice(order.total)}.`;
+    `Здравствуйте, ${order.customer}!\nВаш заказ ${order.id} в SPHINX принят в работу.\nСумма: ${formatPrice(order.total)}.`;
   return (
     <div className="space-y-5">
       <div className="admin-card">
@@ -232,22 +222,7 @@ export default function Orders() {
             <b>Итого</b>
             <b>{formatPrice(order.total)}</b>
           </div>
-          <div className="border-t mt-5 pt-5 grid md:grid-cols-[1fr_auto] gap-3">
-            <label className="relative">
-              <Truck size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                className="field search-field"
-                placeholder="Номер отправления"
-                value={tracking[order.databaseId ?? ''] ?? ''}
-                onChange={(event) =>
-                  setTracking((current) => ({
-                    ...current,
-                    [order.databaseId ?? '']: event.target.value,
-                  }))
-                }
-                onBlur={() => order.databaseId && void persistTracking(order.databaseId)}
-              />
-            </label>
+          <div className="border-t mt-5 pt-5 flex justify-end">
             <div className="flex gap-2">
               <button
                 onClick={() => void navigator.clipboard.writeText(customerMessage(order))}
