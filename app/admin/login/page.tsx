@@ -56,8 +56,16 @@ export default function AdminLoginPage() {
             Admin
           </span>
         </div>
-        <h1 className="display !text-[clamp(2.6rem,6vw,4rem)] leading-[.98] max-w-full break-words [text-wrap:pretty]">
-          {copy.title}
+        <h1 className="display !text-[clamp(2.35rem,5vw,3.5rem)] leading-[1.02] max-w-full">
+          {language === 'ru' ? (
+            <>
+              Вход для
+              <br />
+              администратора
+            </>
+          ) : (
+            copy.title
+          )}
         </h1>
         <p className="text-sm text-muted mt-4 mb-9">
           {language === 'ru'
