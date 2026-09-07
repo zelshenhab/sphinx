@@ -45,16 +45,26 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <main className="container-x min-h-[70vh] grid place-items-center py-16">
+    <main className="container-x min-h-[78svh] grid place-items-center py-12 sm:py-20">
       <form
         onSubmit={signIn}
-        className="w-full max-w-md bg-white border border-black/10 p-7 md:p-10"
+        className="w-full max-w-lg bg-white border border-black/10 p-7 sm:p-10 md:p-12 shadow-[0_18px_60px_rgba(35,29,22,.08)]"
       >
-        <p className="eyebrow text-brown">SPHINX · Secure</p>
-        <h1 className="display text-3xl mt-3 mb-7">{copy.title}</h1>
+        <div className="flex items-center justify-between gap-4 mb-10">
+          <p className="eyebrow text-brown">SPHINX · Secure</p>
+          <span className="border border-gold/40 bg-gold/10 px-3 py-1 text-[9px] uppercase tracking-widest text-brown">
+            Admin
+          </span>
+        </div>
+        <h1 className="display text-4xl sm:text-5xl leading-[1.02] max-w-md">{copy.title}</h1>
+        <p className="text-sm text-muted mt-4 mb-9">
+          {language === 'ru'
+            ? 'Управляйте товарами, заказами и настройками магазина.'
+            : 'Manage products, orders and store settings.'}
+        </p>
         <div className="space-y-4">
           <input
-            className="field"
+            className="field h-14 px-4"
             type="email"
             required
             autoComplete="email"
@@ -63,7 +73,7 @@ export default function AdminLoginPage() {
             onChange={(event) => setEmail(event.target.value)}
           />
           <input
-            className="field"
+            className="field h-14 px-4"
             type="password"
             required
             autoComplete="current-password"
@@ -73,7 +83,7 @@ export default function AdminLoginPage() {
           />
         </div>
         {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
-        <button disabled={loading} className="btn btn-dark w-full mt-6 disabled:opacity-50">
+        <button disabled={loading} className="btn btn-dark w-full mt-7 h-14 disabled:opacity-50">
           {loading ? copy.loading : copy.submit}
         </button>
       </form>
