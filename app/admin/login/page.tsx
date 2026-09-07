@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
             Admin
           </span>
         </div>
-        <h1 className="display text-4xl sm:text-5xl leading-[1.02] max-w-full break-words [overflow-wrap:anywhere]">
+        <h1 className="display !text-[clamp(2.6rem,6vw,4rem)] leading-[.98] max-w-full break-words [text-wrap:pretty]">
           {copy.title}
         </h1>
         <p className="text-sm text-muted mt-4 mb-9">
