@@ -22,6 +22,7 @@ const translations: Record<string, string> = {
   'Символы с историей в языке современного города.':
     'Symbols with history in the language of the modern city.',
   'Древние символы. Новая энергия.': 'Ancient symbols. New energy.',
+  'Вернуться в магазин': 'Back to shop',
   'Современная форма, древние символы и одежда, созданная для настоящего.':
     'Modern silhouettes, ancient symbols and clothing made for today.',
   'БЕСПЛАТНАЯ ДОСТАВКА ОТ 7 000 ₽': 'FREE SHIPPING FROM 7,000 ₽',
