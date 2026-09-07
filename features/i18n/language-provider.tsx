@@ -12,6 +12,16 @@ const translations: Record<string, string> = {
   Навигация: 'Navigation',
   Информация: 'Information',
   'Мы на связи': 'Get in touch',
+  Материал: 'Material',
+  Силуэт: 'Silhouette',
+  Смысл: 'Meaning',
+  'Плотные ткани и внимательная обработка каждой детали.':
+    'Heavy fabrics and careful finishing in every detail.',
+  'Форма, которая остается комфортной и выразительной.':
+    'A silhouette that stays comfortable and expressive.',
+  'Символы с историей в языке современного города.':
+    'Symbols with history in the language of the modern city.',
+  'Древние символы. Новая энергия.': 'Ancient symbols. New energy.',
   'Современная форма, древние символы и одежда, созданная для настоящего.':
     'Modern silhouettes, ancient symbols and clothing made for today.',
   'БЕСПЛАТНАЯ ДОСТАВКА ОТ 7 000 ₽': 'FREE SHIPPING FROM 7,000 ₽',
