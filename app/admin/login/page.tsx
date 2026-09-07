@@ -56,7 +56,9 @@ export default function AdminLoginPage() {
             Admin
           </span>
         </div>
-        <h1 className="display text-4xl sm:text-5xl leading-[1.02] max-w-md">{copy.title}</h1>
+        <h1 className="display text-4xl sm:text-5xl leading-[1.02] max-w-full break-words [overflow-wrap:anywhere]">
+          {copy.title}
+        </h1>
         <p className="text-sm text-muted mt-4 mb-9">
           {language === 'ru'
             ? 'Управляйте товарами, заказами и настройками магазина.'
